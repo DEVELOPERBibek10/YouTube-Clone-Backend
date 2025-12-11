@@ -21,3 +21,5 @@ const uploadFile = async (localFilePath) => {
     throw new Error(error);
   }
 };
+
+export { uploadFile };
