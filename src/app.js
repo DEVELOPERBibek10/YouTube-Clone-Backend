@@ -19,7 +19,9 @@ app.use(cookieParser());
 // router imports
 
 import userRouter from "./routes/users.routes.js";
+import globalErrorHandler from "./middlewares/error.middleware.js";
 
 app.use("/api/v1/users", userRouter);
+app.use(globalErrorHandler);
 
 export default app;
