@@ -50,7 +50,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
-  const avatarLocalPath = req.files?.avatar[0]?.path;
+  const avatarLocalPath = req.files?.avatar?.[0]?.path;
   let coverImageLocalPath;
 
   if (
@@ -211,9 +211,34 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-  return res
-    .status(200)
-    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+  const {
+    _id,
+    avatar,
+    coverImage,
+    fullName,
+    username,
+    email,
+    createdAt,
+    updatedAt,
+    watchHistory,
+  } = req.user;
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        _id,
+        avatar,
+        coverImage,
+        fullName,
+        username,
+        email,
+        watchHistory,
+        createdAt,
+        updatedAt,
+      },
+      "Current user fetched successfully"
+    )
+  );
 });
 
 export {
