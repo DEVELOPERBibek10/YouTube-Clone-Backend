@@ -74,16 +74,20 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const user = await User.create({
     fullName,
-    avatar: avatar.url,
-    coverImage: coverImage?.url || "",
+    avatar: {
+      url: avatar.url,
+      public_id: avatar.public_id,
+    },
+    coverImage: {
+      url: coverImage?.url || "",
+      public_id: coverImage?.public_id || "",
+    },
     email,
     password,
     username: username.toLowerCase(),
   });
 
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const createdUser = await User.findById(user._id);
 
   if (!createdUser) {
     throw new ApiError(
