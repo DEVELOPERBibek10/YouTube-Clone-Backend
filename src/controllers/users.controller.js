@@ -93,7 +93,7 @@ const registerUser = asyncHandler(async (req, res) => {
       username: username.toLowerCase(),
     });
 
-    const createdUser = await User.findById(user._id);
+    const createdUser = await User.findById(user._id).select("-password");
 
     if (!createdUser) {
       if (avatar?.public_id) await deleteFile(avatar.public_id);
@@ -120,23 +120,23 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const existingUser = await User.findOne({ email });
+  const user = await User.findOne({ email });
 
-  if (!existingUser) {
+  if (!user) {
     throw new ApiError(404, "User does not exist!");
   }
 
-  const isPasswordValid = existingUser.isPasswordCorrect(password);
+  const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid password !");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    existingUser._id
+    user._id
   );
 
-  const user = await User.findById(existingUser._id);
+  const loggedInUser = await User.findById(user._id).select("-password");
 
   const options = {
     httpOnly: true,
@@ -151,7 +151,7 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user,
+          user: loggedInUser,
           accessToken,
         },
         "User loggedIn successfully"
