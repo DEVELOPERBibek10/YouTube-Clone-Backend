@@ -118,25 +118,23 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const existingUser = await User.findOne({ email });
 
-  if (!user) {
+  if (!existingUser) {
     throw new ApiError(404, "User does not exist!");
   }
 
-  const isPasswordValid = user.isPasswordCorrect(password);
+  const isPasswordValid = existingUser.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid password !");
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
+    existingUser._id
   );
 
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const user = await User.findById(existingUser._id);
 
   const options = {
     httpOnly: true,
@@ -151,7 +149,7 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInUser,
+          user,
           accessToken,
         },
         "User loggedIn successfully"
