@@ -2,13 +2,9 @@ import { ApiError } from "../utils/ApiError.js";
 
 // Internal function to check the error type and convert to ApiError
 const globalErrorHandler = (err, req, res, next) => {
-  if (err instanceof ApiError) {
-    return err;
-  }
-
-  let statusCode = 500;
-  let message = "Internal Server Error";
-  let errors = [];
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+  let errors = err.errors || [];
 
   if (err.name === "ValidationError") {
     statusCode = 400;
@@ -32,13 +28,17 @@ const globalErrorHandler = (err, req, res, next) => {
     message = "Invalid JSON body provided.";
   }
 
-  if (err.name && err.message) {
+  if (err.message) {
     message = err.message;
   }
 
-  return res
-    .status(statusCode)
-    .json(new ApiError(statusCode, message, errors, err.stack || null));
+  return res.status(statusCode).json({
+    success: false,
+    message: message,
+    errors: errors,
+    data: null,
+    stack: process.env.NODE_ENV === "development" ? err.stack : null,
+  });
 };
 
 export default globalErrorHandler;

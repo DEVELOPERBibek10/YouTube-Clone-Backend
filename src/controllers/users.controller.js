@@ -96,6 +96,8 @@ const registerUser = asyncHandler(async (req, res) => {
     const createdUser = await User.findById(user._id);
 
     if (!createdUser) {
+      if (avatar?.public_id) await deleteFile(avatar.public_id);
+      if (coverImage?.public_id) await deleteFile(coverImage.public_id);
       throw new ApiError(
         500,
         "Unable to register user due to internal server issues."
