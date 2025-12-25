@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadFile } from "../utils/cloudinary.js";
+import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -30,75 +30,90 @@ const registerUser = asyncHandler(async (req, res) => {
   // remove password and refresh token field from response.
   // return response.
 
-  const { fullName, email, username, password } = req.body;
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  let avatar = null;
+  let coverImage = null;
 
-  if (
-    [fullName, email, username, password].some((feild) => feild?.trim() === "")
-  ) {
-    throw new ApiError(400, "Field is required");
+  try {
+    const { fullName, email, username, password } = req.body;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (
+      [fullName, email, username, password].some(
+        (feild) => feild?.trim() === ""
+      )
+    ) {
+      throw new ApiError(400, "Field is required");
+    }
+    if (!emailRegex.test(email.toLowerCase())) {
+      throw new ApiError(400, "Invalid email format");
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ username: username }, { email: email }],
+    });
+
+    if (existingUser) {
+      throw new ApiError(409, "User already exists");
+    }
+
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    let coverImageLocalPath;
+
+    if (
+      req.files &&
+      Array.isArray(req.files.coverImage) &&
+      req.files.coverImage.length > 0
+    ) {
+      coverImageLocalPath = req.files.coverImage[0].path;
+    }
+
+    if (!avatarLocalPath) {
+      throw new ApiError(400, "Avatar field is required");
+    }
+
+    avatar = await uploadFile(avatarLocalPath);
+    coverImage = await uploadFile(coverImageLocalPath);
+
+    if (!avatar) {
+      throw new ApiError(400, "Avatar field is required");
+    }
+
+    const user = await User.create({
+      fullName,
+      avatar: {
+        url: avatar.url,
+        publicId: avatar.public_id,
+      },
+      coverImage: {
+        url: coverImage?.url || "",
+        publicId: coverImage?.public_id || "",
+      },
+      email: email.toLowerCase(),
+      password,
+      username: username.toLowerCase(),
+    });
+
+    const createdUser = await User.findById(user._id);
+
+    if (!createdUser) {
+      throw new ApiError(
+        500,
+        "Unable to register user due to internal server issues."
+      );
+    }
+
+    return res
+      .status(201)
+      .json(new ApiResponse(201, createdUser, "User registered sucessfully!"));
+  } catch (error) {
+    if (avatar?.public_id) {
+      await deleteFile(avatar.public_id);
+    }
+    if (coverImage?.public_id) {
+      await deleteFile(coverImage.public_id);
+    }
+    throw error;
   }
-  if (!emailRegex.test(email.toLowerCase())) {
-    throw new ApiError(400, "Invalid email format");
-  }
-
-  const existingUser = await User.findOne({
-    $or: [{ username: username }, { email: email }],
-  });
-
-  if (existingUser) {
-    throw new ApiError(409, "User already exists");
-  }
-
-  const avatarLocalPath = req.files?.avatar?.[0]?.path;
-  let coverImageLocalPath;
-
-  if (
-    req.files &&
-    Array.isArray(req.files.coverImage) &&
-    req.files.coverImage.length > 0
-  ) {
-    coverImageLocalPath = req.files.coverImage[0].path;
-  }
-
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar field is required");
-  }
-
-  const avatar = await uploadFile(avatarLocalPath);
-  const coverImage = await uploadFile(coverImageLocalPath);
-
-  if (!avatar) {
-    throw new ApiError(400, "Avatar field is required");
-  }
-
-  const user = await User.create({
-    fullName,
-    avatar: {
-      url: avatar.url,
-      public_id: avatar.public_id,
-    },
-    coverImage: {
-      url: coverImage?.url || "",
-      public_id: coverImage?.public_id || "",
-    },
-    email,
-    password,
-    username: username.toLowerCase(),
-  });
-
-  const createdUser = await User.findById(user._id);
-
-  if (!createdUser) {
-    throw new ApiError(
-      500,
-      "Unable to register user due to internal server issues."
-    );
-  }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered sucessfully!"));
 });
 
 const loginUser = asyncHandler(async (req, res) => {

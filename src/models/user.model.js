@@ -36,14 +36,12 @@ const userSchema = new Schema(
       },
     },
     coverImage: {
-      type: {
-        url: {
-          type: String,
-        },
-        publicId: {
-          type: String,
-          select: false,
-        },
+      url: {
+        type: String,
+      },
+      publicId: {
+        type: String,
+        select: false,
       },
     },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
