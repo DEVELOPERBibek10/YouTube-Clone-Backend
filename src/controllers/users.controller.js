@@ -279,6 +279,104 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Password changed successfully!"));
 });
 
+const updateDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email,
+      },
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated sucessfully"));
+});
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalFile = req.file?.path;
+
+  if (!avatarLocalFile) throw new ApiError(400, "Avatar image is required.");
+
+  const user = await User.findById(req.user?._id).select("+avatar.publicId");
+
+  if (!user) throw new ApiError(404, "User not found");
+
+  const avatar = await uploadFile(avatarLocalFile, user.avatar.publicId);
+
+  if (!avatar.url) {
+    throw new ApiError(500, "Error while uploading avatar image");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        "avatar.url": avatar.url,
+        "avatar.publicId": avatar.public_id,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedUser) throw new ApiError(404, "User not found");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
+});
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalFile = req.file?.path;
+
+  if (!coverImageLocalFile) throw new ApiError(400, "Cover image is required.");
+
+  const user = await User.findById(req.user?._id).select(
+    "+coverImage.publicId"
+  );
+
+  if (!user) throw new ApiError(404, "User not found");
+
+  const coverImage = await uploadFile(
+    coverImageLocalFile,
+    user.coverImage.publicId
+  );
+
+  if (!coverImage.url) {
+    throw new ApiError(500, "Error while uploading cover image");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        "coverImage.url": coverImage.url,
+        "coverImage.publicId": coverImage.public_id,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedUser) throw new ApiError(404, "User not found");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedUser, "Cover Imae updated successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -286,4 +384,7 @@ export {
   refreshAccessToken,
   getCurrentUser,
   changeCurrentPassword,
+  updateDetails,
+  updateAvatar,
+  updateCoverImage,
 };
