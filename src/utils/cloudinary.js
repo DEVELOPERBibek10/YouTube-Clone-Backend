@@ -7,18 +7,30 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadFile = async (localFilePath) => {
+const uploadFile = async (localFilePath, publicId = null) => {
+  const options = {
+    invalidate: true,
+    secure: true,
+    resource_type: "auto",
+  };
+
+  if (publicId) {
+    options.public_id = publicId;
+    options.overwrite = true;
+  }
+
   try {
     if (!localFilePath) return null;
-    const response = await cloudinary.uploader.upload(localFilePath, {
-      secure: true,
-      resource_type: "auto",
-    });
-    fs.unlinkSync(localFilePath);
+    const response = await cloudinary.uploader.upload(localFilePath, options);
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath);
     return null;
+  } finally {
+    try {
+      await fs.promises.unlink(localFilePath);
+    } catch (unlinkError) {
+      console.warn("Failed to delete temp file:", unlinkError.message);
+    }
   }
 };
 
