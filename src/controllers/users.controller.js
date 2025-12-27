@@ -295,7 +295,7 @@ const updateDetails = asyncHandler(async (req, res) => {
       },
     },
     { new: true }
-  );
+  ).select("-password");
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -311,7 +311,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
   if (!avatarLocalFile) throw new ApiError(400, "Avatar image is required.");
 
-  const user = await User.findById(req.user?._id).select("+avatar.publicId");
+  const user = await User.findById(req.user?._id).select(
+    "+avatar.publicId -password"
+  );
 
   if (!user) throw new ApiError(404, "User not found");
 
@@ -345,7 +347,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   if (!coverImageLocalFile) throw new ApiError(400, "Cover image is required.");
 
   const user = await User.findById(req.user?._id).select(
-    "+coverImage.publicId"
+    "+coverImage.publicId -password"
   );
 
   if (!user) throw new ApiError(404, "User not found");
