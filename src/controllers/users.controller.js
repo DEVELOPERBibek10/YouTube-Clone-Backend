@@ -181,12 +181,12 @@ const logoutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User logged out"));
+    .json(new ApiResponse(200, null, "User logged out"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incommingRefreshToken =
-    req.cookie.refreshToken || req.body.refreshToken;
+    req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incommingRefreshToken) {
     throw new ApiError(401, "Invalid refresh token!");
@@ -200,7 +200,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
-      throw new ApiError(401, "Invalid refresh token!");
+      throw new ApiError(404, "User not found");
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
@@ -215,15 +215,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .status(200)
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            accessToken,
-          },
-          "Access token refreshed"
-        )
-      );
+      .json(new ApiResponse(200, null, "Access token refreshed"));
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid refresh token");
   }
