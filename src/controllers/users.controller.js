@@ -185,8 +185,9 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incommingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
+  if (!req.cookies) throw ApiError(403, "Forbidden request");
+
+  const incommingRefreshToken = req.cookies.refreshToken;
 
   if (!incommingRefreshToken) {
     throw new ApiError(401, "Invalid refresh token!");
