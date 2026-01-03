@@ -375,7 +375,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
-  if (!username) throw new ApiError(400, "Not a valid username");
+  if (!username?.trim()) throw new ApiError(400, "Not a valid username");
 
   const channel = await User.aggregate([
     {
