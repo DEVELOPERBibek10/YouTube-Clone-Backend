@@ -6,7 +6,7 @@ dotenv.config({ path: "./.env" });
 connectDB()
   .then(() => {
     const server = app.listen(process.env.PORT || 8000, () => {
-      console.log(`Server running on http://localhost:${process.env.PORT}`);
+      console.log(`Server running on port:${process.env.PORT}`);
     });
     server.on("error", (err) => {
       console.error("EXPRESS SERVER FAILURE: Could not bind to port :", err);
