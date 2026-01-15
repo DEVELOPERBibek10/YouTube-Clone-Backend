@@ -45,6 +45,14 @@ const registerUser = asyncHandler(async (req, res) => {
     ) {
       throw new ApiError(400, "Field is required");
     }
+
+    if (password.length < 8 && password.length > 16) {
+      throw new ApiError(
+        400,
+        "Password cannot be shorter than 8 or longer than 16 characters."
+      );
+    }
+
     if (!emailRegex.test(email.toLowerCase())) {
       throw new ApiError(400, "Invalid email format");
     }
@@ -125,6 +133,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
   if (!user) {
     throw new ApiError(404, "User does not exist!");
+  }
+
+  if (password.length < 8 && password.length > 16) {
+    throw new ApiError(
+      400,
+      "Password cannot be shorter than 8 or longer than 16 characters."
+    );
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
