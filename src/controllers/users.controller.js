@@ -397,7 +397,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
   const channel = await User.aggregate([
     {
-      $match: username?.toLowerCase(),
+      $match: { username: username?.toLowerCase() },
     },
     {
       $lookup: {
@@ -425,7 +425,14 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            if: {
+              $in: [
+                req.user?._id
+                  ? new mongoose.Types.ObjectId(req.user._id)
+                  : null,
+                "$subscribers.subscriber",
+              ],
+            },
             then: true,
             else: false,
           },
@@ -441,6 +448,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         isSubscribed: 1,
         avatar: 1,
         coverImage: 1,
+        email: 1,
       },
     },
   ]);
