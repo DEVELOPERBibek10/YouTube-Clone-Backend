@@ -46,7 +46,7 @@ const registerUser = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Field is required");
     }
 
-    if (password.length < 8 && password.length > 16) {
+    if (password.length < 8 || password.length > 16) {
       throw new ApiError(
         400,
         "Password cannot be shorter than 8 or longer than 16 characters."
@@ -135,7 +135,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exist!");
   }
 
-  if (password.length < 8 && password.length > 16) {
+  if (password.length < 8 || password.length > 16) {
     throw new ApiError(
       400,
       "Password cannot be shorter than 8 or longer than 16 characters."
@@ -281,6 +281,13 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isPasswordCorrect) throw new ApiError(400, "Invalid old password");
+
+  if (newPassword.length < 8 || newPassword.length > 16) {
+    throw new ApiError(
+      400,
+      "Password cannot be shorter than 8 or longer than 16 characters."
+    );
+  }
 
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
@@ -465,20 +472,20 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
-      $match: new mongoose.Types.ObjectId(req.user._id),
+      $match: { _id: new mongoose.Types.ObjectId(req.user._id) },
     },
     {
       $lookup: {
         from: "videos",
-        localField: "owner",
+        localField: "watchHistory",
         foreignField: "_id",
         as: "watchHistory",
         pipeline: [
           {
             $lookup: {
               from: "users",
-              localField: "_id",
-              foreignField: "owner",
+              localField: "owner",
+              foreignField: "_id",
               as: "owner",
               pipeline: [
                 {
