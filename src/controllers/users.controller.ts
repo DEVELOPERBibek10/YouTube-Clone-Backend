@@ -101,7 +101,7 @@ const registerUser = asyncHandler(
       }
 
       if (!avatar) {
-        throw new ApiError(400, "Avatar field is required");
+        throw new ApiError(500, "Error while uploading avatar");
       }
 
       const user = await User.create({
