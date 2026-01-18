@@ -3,9 +3,9 @@ import type { UploadApiResponse, UploadApiOptions } from "cloudinary";
 import fs from "fs";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const uploadFile = async (
@@ -30,6 +30,7 @@ const uploadFile = async (
     const response = await cloudinary.uploader.upload(localFilePath, options);
     return response;
   } catch (error) {
+    console.error(error);
     return null;
   } finally {
     try {
