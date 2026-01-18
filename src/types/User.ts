@@ -1,5 +1,6 @@
 import type mongoose from "mongoose";
-import { Document, Model } from "mongoose";
+import { Document, Model, Types, type ObjectId } from "mongoose";
+import type { UserInfo } from "os";
 
 export interface IUser {
   username: string;
@@ -29,7 +30,7 @@ export interface IUserMethods {
 }
 
 export interface UserResponse {
-  _id: string;
+  _id: string | Types.ObjectId;
   username: string;
   email: string;
   fullName: string;
@@ -39,9 +40,20 @@ export interface UserResponse {
   coverImage?: {
     url: string;
   };
-  watchHistory: string[] | [];
+  watchHistory: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface LoggedInUserResponse {
+  user: UserResponse;
+  accessToken: String;
+}
+
+export interface ChannelProfileResponse extends UserResponse {
+  subscribersCount: number;
+  channelsSubscribedToCount: number;
+  isSubscribed: boolean;
 }
 
 export type UserModel = Model<IUserDocument, {}, IUserMethods>;

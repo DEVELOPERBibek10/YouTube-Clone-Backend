@@ -5,7 +5,12 @@ import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
-import type { IUserDocument } from "../types/User.js";
+import type {
+  UserResponse,
+  IUserDocument,
+  LoggedInUserResponse,
+  ChannelProfileResponse,
+} from "../types/User.js";
 import type {
   AuthTypedRequest,
   LoginUserBody,
@@ -133,7 +138,11 @@ const registerUser = asyncHandler(
       return res
         .status(201)
         .json(
-          new ApiResponse(201, createdUser, "User registered sucessfully!")
+          new ApiResponse<UserResponse>(
+            201,
+            createdUser,
+            "User registered sucessfully!"
+          )
         );
     } catch (error) {
       if (avatar?.public_id) {
@@ -186,10 +195,10 @@ const loginUser = asyncHandler(
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", refreshToken, options)
       .json(
-        new ApiResponse(
+        new ApiResponse<LoggedInUserResponse>(
           200,
           {
-            user: loggedInUser,
+            user: loggedInUser as UserResponse,
             accessToken,
           },
           "User loggedIn successfully"
@@ -221,7 +230,7 @@ const logoutUser = asyncHandler(
       .status(200)
       .clearCookie("accessToken", options)
       .clearCookie("refreshToken", options)
-      .json(new ApiResponse(200, null, "User logged out"));
+      .json(new ApiResponse<null>(200, null, "User logged out"));
   }
 );
 
@@ -259,7 +268,7 @@ const refreshAccessToken = asyncHandler(
         .status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", newRefreshToken, options)
-        .json(new ApiResponse(200, null, "Access token refreshed"));
+        .json(new ApiResponse<null>(200, null, "Access token refreshed"));
     } catch (error) {
       if (error instanceof ApiError) {
         throw new ApiError(401, error?.message || "Invalid refresh token");
@@ -284,7 +293,7 @@ const getCurrentUser = asyncHandler(
     } = req.user!;
 
     return res.status(200).json(
-      new ApiResponse(
+      new ApiResponse<UserResponse>(
         200,
         {
           _id,
@@ -330,7 +339,7 @@ const changeCurrentPassword = asyncHandler(
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Password changed successfully!"));
+      .json(new ApiResponse<{}>(200, {}, "Password changed successfully!"));
   }
 );
 
@@ -359,7 +368,13 @@ const updateDetails = asyncHandler(
 
     return res
       .status(200)
-      .json(new ApiResponse(200, user, "Account details updated sucessfully"));
+      .json(
+        new ApiResponse<UserResponse>(
+          200,
+          user,
+          "Account details updated sucessfully"
+        )
+      );
   }
 );
 
@@ -396,7 +411,13 @@ const updateAvatar = asyncHandler(
 
     return res
       .status(200)
-      .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
+      .json(
+        new ApiResponse<UserResponse>(
+          200,
+          updatedUser,
+          "Avatar updated successfully"
+        )
+      );
   }
 );
 
@@ -438,7 +459,11 @@ const updateCoverImage = asyncHandler(
     return res
       .status(200)
       .json(
-        new ApiResponse(200, updatedUser, "Cover Imae updated successfully")
+        new ApiResponse<UserResponse>(
+          200,
+          updatedUser,
+          "Cover Imae updated successfully"
+        )
       );
   }
 );
@@ -512,7 +537,11 @@ const getUserChannelProfile = asyncHandler(
     return res
       .status(200)
       .json(
-        new ApiResponse(200, channel[0], "User channel fetched sucessfully!")
+        new ApiResponse<ChannelProfileResponse>(
+          200,
+          channel[0],
+          "User channel fetched sucessfully!"
+        )
       );
   }
 );
