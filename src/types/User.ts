@@ -1,6 +1,4 @@
-import type mongoose from "mongoose";
-import { Document, Model, Types, type ObjectId } from "mongoose";
-import type { UserInfo } from "os";
+import { Document, Model, Types } from "mongoose";
 
 export interface IUser {
   username: string;
@@ -14,7 +12,7 @@ export interface IUser {
     url: string;
     publicId: string;
   };
-  watchHistory: mongoose.Types.ObjectId[] | [];
+  watchHistory: Types.ObjectId[] | [];
   password: string;
   refreshToken?: string;
   createdAt: Date;
@@ -55,5 +53,3 @@ export interface ChannelProfileResponse extends UserResponse {
   channelsSubscribedToCount: number;
   isSubscribed: boolean;
 }
-
-export type UserModel = Model<IUserDocument, {}, IUserMethods>;

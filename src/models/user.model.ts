@@ -1,9 +1,9 @@
-import mongoose, { Schema } from "mongoose";
+import { Schema, model } from "mongoose";
 import jwt, { type Secret } from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import type { IUserDocument, IUserMethods, UserModel } from "../types/User.js";
+import type { IUserDocument } from "../types/User.js";
 
-const userSchema = new Schema<IUserDocument, UserModel, IUserMethods>(
+const userSchema = new Schema<IUserDocument>(
   {
     username: {
       type: String,
@@ -94,4 +94,4 @@ userSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const User = mongoose.model("User", userSchema);
+export const User = model<IUserDocument>("User", userSchema);
