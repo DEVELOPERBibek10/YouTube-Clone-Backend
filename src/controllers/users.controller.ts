@@ -124,7 +124,9 @@ const registerUser = asyncHandler(
         username: username.toLowerCase(),
       });
 
-      const createdUser = await User.findById(user._id).select("-password");
+      const createdUser = await User.findById(user._id).select(
+        "-password -watchHistory"
+      );
 
       if (!createdUser) {
         if (avatar?.public_id) await deleteFile(avatar.public_id);
@@ -182,7 +184,9 @@ const loginUser = asyncHandler(
       user._id
     );
 
-    const loggedInUser = await User.findById(user._id).select("-password");
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -watchHistory"
+    );
 
     const options: CookieOptions = {
       httpOnly: true,
@@ -289,7 +293,6 @@ const getCurrentUser = asyncHandler(
       email,
       createdAt,
       updatedAt,
-      watchHistory,
     } = req.user!;
 
     return res.status(200).json(
@@ -302,7 +305,6 @@ const getCurrentUser = asyncHandler(
           fullName,
           username,
           email,
-          watchHistory,
           createdAt,
           updatedAt,
         },
@@ -344,10 +346,10 @@ const changeCurrentPassword = asyncHandler(
 );
 
 const updateDetails = asyncHandler(
-  async (req: AuthTypedRequest<{ fullName: string; email: string }>, res) => {
-    const { fullName, email } = req.body;
+  async (req: AuthTypedRequest<{ fullName: string }>, res) => {
+    const { fullName } = req.body;
 
-    if (!fullName || !email) {
+    if (!fullName) {
       throw new ApiError(400, "All fields are required");
     }
 
@@ -356,11 +358,10 @@ const updateDetails = asyncHandler(
       {
         $set: {
           fullName,
-          email,
         },
       },
       { new: true }
-    ).select("-password");
+    ).select("-password -watchHistory");
 
     if (!user) {
       throw new ApiError(404, "User not found");
@@ -385,7 +386,7 @@ const updateAvatar = asyncHandler(
     if (!avatarLocalFile) throw new ApiError(400, "Avatar image is required.");
 
     const user = await User.findById(req.user?._id).select(
-      "+avatar.publicId -password"
+      "+avatar.publicId -password -watchHistory"
     );
 
     if (!user) throw new ApiError(404, "User not found");
@@ -405,7 +406,7 @@ const updateAvatar = asyncHandler(
         },
       },
       { new: true }
-    );
+    ).select("-password -watchHistory");
 
     if (!updatedUser) throw new ApiError(404, "User not found");
 
@@ -452,7 +453,7 @@ const updateCoverImage = asyncHandler(
         },
       },
       { new: true }
-    );
+    ).select("-password -watchHistory");
 
     if (!updatedUser) throw new ApiError(404, "User not found");
 
@@ -586,7 +587,7 @@ const getWatchHistory = asyncHandler(async (req: AuthTypedRequest, res) => {
     },
   ]);
 
-  if (!user) {
+  if (!user || !user[0].watchHistory) {
     throw new ApiError(
       500,
       "OOPS! Something went wrong while fetching watch history."

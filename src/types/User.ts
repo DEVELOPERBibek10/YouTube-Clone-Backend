@@ -38,7 +38,6 @@ export interface UserResponse {
   coverImage?: {
     url: string;
   };
-  watchHistory: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
