@@ -10,14 +10,14 @@ import type {
   IUserDocument,
   LoggedInUserResponse,
   ChannelProfileResponse,
-} from "../types/User.js";
+} from "../types/Model/User.js";
 import type {
   AuthTypedRequest,
   LoginUserBody,
   RegisterUserBody,
   TypedRequest,
   DecodedToken,
-} from "../types/auth.js";
+} from "../types/Auth/auth.js";
 import type { Response, CookieOptions } from "express";
 
 const generateAccessAndRefreshToken = async (

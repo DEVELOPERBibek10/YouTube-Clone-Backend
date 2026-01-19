@@ -1,5 +1,5 @@
 import type { JwtPayload } from "jsonwebtoken";
-import type { IUserDocument } from "./User.js";
+import type { IUserDocument } from "../Model/User.js";
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
 

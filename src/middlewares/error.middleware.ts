@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import type { GlobalError } from "../types/GobalError.js";
+import type { GlobalError } from "../types/Error/GobalError.js";
 import type { Error as MongooseError } from "mongoose";
 
 const globalErrorHandler = (

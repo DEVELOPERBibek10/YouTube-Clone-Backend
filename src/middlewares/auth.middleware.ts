@@ -3,8 +3,8 @@ import jwt from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { NextFunction, Response } from "express";
-import type { DecodedToken } from "../types/auth.js";
-import type { AuthTypedRequest } from "../types/auth.js";
+import type { DecodedToken } from "../types/Auth/auth.js";
+import type { AuthTypedRequest } from "../types/Auth/auth.js";
 
 export const verifyJWT = asyncHandler(
   async (req: AuthTypedRequest, res: Response, next: NextFunction) => {
