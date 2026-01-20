@@ -105,15 +105,11 @@ const registerUser = asyncHandler(
         coverImage = await uploadFile(coverImageLocalPath);
       }
 
-      if (!avatar) {
-        throw new ApiError(500, "Error while uploading avatar");
-      }
-
       const user = await User.create({
         fullName,
         avatar: {
-          url: avatar.url,
-          publicId: avatar.public_id,
+          url: avatar!.url,
+          publicId: avatar!.public_id,
         },
         coverImage: {
           url: coverImage?.url || "",

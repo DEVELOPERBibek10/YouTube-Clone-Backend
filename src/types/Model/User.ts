@@ -19,6 +19,13 @@ export interface IUser {
   updatedAt: Date;
 }
 
+export interface IUserRequest extends Omit<
+  IUser,
+  "watchHistory" | "avatar.publicId" | "coverImage.publicId"
+> {
+  _id: Types.ObjectId;
+}
+
 export interface IUserDocument extends IUser, IUserMethods, Document {}
 
 export interface IUserMethods {
@@ -44,7 +51,7 @@ export interface UserResponse {
 
 export interface LoggedInUserResponse {
   user: UserResponse;
-  accessToken: String;
+  accessToken: string;
 }
 
 export interface ChannelProfileResponse extends UserResponse {

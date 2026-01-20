@@ -1,5 +1,5 @@
 import type { JwtPayload } from "jsonwebtoken";
-import type { IUserDocument } from "../Model/User.js";
+import type { IUser, IUserDocument, IUserRequest } from "../Model/User.js";
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
 
@@ -31,7 +31,7 @@ export interface AuthTypedRequest<
   TFile = any,
   TParams = ParamsDictionary,
 > extends Omit<Request, "body" | "files" | "params"> {
-  user?: IUserDocument;
+  user?: IUserRequest;
   body: TBody;
   params: TParams;
   files?: TFile | undefined;
@@ -44,20 +44,9 @@ export interface RegisterUserBody {
   password: string;
 }
 
-export interface RegisterUserFiles {
-  avatar: Express.Multer.File[];
-  coverImage?: Express.Multer.File[];
-}
-
 export interface LoginUserBody {
   email: string;
   password: string;
 }
 
-export interface updateAvatarType {
-  avatar?: Express.Multer.File;
-}
-
-export interface updateCoverImageType {
-  coverImage?: Express.Multer.File;
-}
+export interface VideoRequestBody {}

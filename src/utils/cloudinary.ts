@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import type { UploadApiResponse, UploadApiOptions } from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./ApiError.js";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -15,7 +16,7 @@ const uploadFile = async (
   const options: UploadApiOptions = {
     invalidate: true,
     secure: true,
-    resource_type: "auto",
+    resource_type: "image",
     public_id: "",
     overwrite: false,
   };
@@ -30,18 +31,15 @@ const uploadFile = async (
     const response = await cloudinary.uploader.upload(localFilePath, options);
     return response;
   } catch (error) {
-    console.error(error);
-    return null;
+    console.error("CLOUDINARY ERROR:", error);
+    throw new ApiError(500, "Error while uploading file");
   } finally {
-    try {
-      await fs.promises.unlink(localFilePath);
-    } catch (unlinkError) {
-      if (unlinkError instanceof Error) {
-        console.warn("Failed to delete temp file:", unlinkError.message);
-        return null;
+    if (fs.existsSync(localFilePath)) {
+      try {
+        await fs.promises.unlink(localFilePath);
+      } catch (err) {
+        console.error("Cleanup Error (Local file removal failed):", err);
       }
-      console.warn("Failed to delete temp file");
-      return null;
     }
   }
 };
@@ -49,12 +47,7 @@ const uploadFile = async (
 const deleteFile = async (publicId: string) => {
   try {
     const response = await cloudinary.uploader.destroy(publicId);
-    if (response.result !== "ok") {
-      console.error(
-        `Cloudinary deletion failed for ID: ${publicId}. Result: ${response.result}`
-      );
-      return null;
-    }
+
     return response;
   } catch (error) {
     if (error instanceof Error) {
