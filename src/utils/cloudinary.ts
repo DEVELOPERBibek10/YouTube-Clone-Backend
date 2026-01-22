@@ -1,5 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
-import type { UploadApiResponse, UploadApiOptions } from "cloudinary";
+import type {
+  UploadApiResponse,
+  UploadApiOptions,
+  DeleteApiResponse,
+} from "cloudinary";
 import fs from "fs";
 import { ApiError } from "./ApiError.js";
 
@@ -32,7 +36,7 @@ const uploadFile = async (
     return response;
   } catch (error) {
     console.error("CLOUDINARY ERROR:", error);
-    throw new ApiError(500, "Error while uploading file");
+    return null;
   } finally {
     if (fs.existsSync(localFilePath)) {
       try {
@@ -46,19 +50,12 @@ const uploadFile = async (
 
 const deleteFile = async (publicId: string) => {
   try {
-    const response = await cloudinary.uploader.destroy(publicId);
-
+    const response: DeleteApiResponse =
+      await cloudinary.uploader.destroy(publicId);
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error(
-        "Error while deleting file from Cloudinary:",
-        error.message
-      );
-      return null;
-    }
-    console.error("Error while deleting file from Cloudinary");
-    return null;
+    console.error("Error while deleting file from Cloudinary", error);
+    throw new ApiError(500, "Error while deleting the file");
   }
 };
 

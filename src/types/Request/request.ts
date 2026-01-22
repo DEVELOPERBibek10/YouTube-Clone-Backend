@@ -1,14 +1,6 @@
-import type { JwtPayload } from "jsonwebtoken";
-import type { IUser, IUserDocument, IUserRequest } from "../Model/User.js";
+import type { IUserDocument, IUserRequest } from "../Model/User.js";
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
-
-export interface DecodedToken extends JwtPayload {
-  _id: string;
-  email: string;
-  username: string;
-  fullName: string;
-}
 
 export interface AuthFileRequest extends Request {
   user?: IUserDocument;
@@ -49,4 +41,12 @@ export interface LoginUserBody {
   password: string;
 }
 
-export interface VideoRequestBody {}
+export interface VideoRequestBody {
+  title: string;
+  description: string;
+  owner: string;
+  isPublished: boolean;
+  videoUrl: string;
+  videoPublicId: string;
+  duration: number;
+}

@@ -16,9 +16,9 @@ import type {
   LoginUserBody,
   RegisterUserBody,
   TypedRequest,
-  DecodedToken,
-} from "../types/Auth/auth.js";
+} from "../types/Request/request.js";
 import type { Response, CookieOptions } from "express";
+import type { DecodedToken } from "../middlewares/auth.middleware.js";
 
 const generateAccessAndRefreshToken = async (
   userId: string | Types.ObjectId
