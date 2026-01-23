@@ -35,6 +35,7 @@ const uploadFile = async (
     const response = await cloudinary.uploader.upload(localFilePath, options);
     return response;
   } catch (error) {
+    if (error instanceof ApiError) throw error;
     console.error("CLOUDINARY ERROR:", error);
     return null;
   } finally {
@@ -48,14 +49,15 @@ const uploadFile = async (
   }
 };
 
-const deleteFile = async (publicId: string) => {
+const deleteFile = async (publicId: string, resourceType: string = "image") => {
   try {
-    const response: DeleteApiResponse =
-      await cloudinary.uploader.destroy(publicId);
+    const response = (await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    })) as any;
     return response;
   } catch (error) {
-    console.error("Error while deleting file from Cloudinary", error);
-    throw new ApiError(500, "Error while deleting the file");
+    console.error("System Error during Cloudinary deletion:", error);
+    return null;
   }
 };
 
