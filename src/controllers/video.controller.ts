@@ -44,7 +44,6 @@ const uploadVideo = asyncHandler(
     const {
       title,
       description,
-      owner,
       isPublished,
       videoUrl,
       videoPublicId,
@@ -57,42 +56,64 @@ const uploadVideo = asyncHandler(
 
     if (!thumbnailLocalPath) throw new ApiError(400, "Thumbnail is required");
 
-    const user = await User.exists({ _id: owner });
+    const user = await User.exists({ _id: req.user!._id });
 
     if (!user) throw new ApiError(400, "Owner does not exists");
 
     const thumbnail = await uploadFile(thumbnailLocalPath);
 
     if (!thumbnail) {
-      throw new ApiError(500, "Error occured while uploading thumbnail");
+      throw new ApiError(
+        400,
+        "Thumbnail upload is required to publish a video"
+      );
     }
 
-    const video = await Video.create({
-      title,
-      description,
-      owner: user._id,
-      isPublished,
-      videoFile: {
-        url: videoUrl,
-        publicId: videoPublicId,
-      },
-      thumbnail: {
-        url: thumbnail.url,
-        publicId: thumbnail.public_id,
-      },
-      duration,
-    });
+    try {
+      const video = await Video.create({
+        title,
+        description,
+        owner: user._id,
+        isPublished,
+        videoFile: {
+          url: videoUrl,
+          publicId: videoPublicId,
+        },
+        thumbnail: {
+          url: thumbnail.url,
+          publicId: thumbnail.public_id,
+        },
+        duration,
+      });
 
-    const createdVideo = await Video.findById(video._id);
-    if (!createdVideo) {
-      if (thumbnail.public_id) await deleteFile(thumbnail.public_id);
-      if (videoPublicId) await deleteFile(videoPublicId);
-      throw new ApiError(500, "Failed to register the Video");
+      const createdVideo = await Video.exists({ _id: video._id });
+
+      if (!createdVideo) throw new ApiError(500, "Error uploading video");
+
+      return res
+        .status(200)
+        .json(new ApiResponse(200, video, "Video uploaded Sucessfully."));
+    } catch (error: any) {
+      const thumbnailDeletion = await deleteFile(thumbnail.public_id);
+      if (!thumbnailDeletion || thumbnailDeletion.result !== "ok")
+        throw new ApiError(
+          500,
+          "Thumbnail deletion failed. The asset might be orphan"
+        );
+      const videoDeletion = await deleteFile(videoPublicId, "video");
+      if (!videoDeletion || videoDeletion.result !== "ok")
+        throw new ApiError(
+          500,
+          "Video deletion failed. The asset might be orphan"
+        );
+      console.error("Database Registration Error:", error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(
+        500,
+        error?.message || "Database registration failed. Assets cleared.",
+        error?.errors || []
+      );
     }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, "Video uploaded Sucessfully."));
   }
 );
 

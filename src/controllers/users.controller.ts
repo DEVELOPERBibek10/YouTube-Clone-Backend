@@ -53,58 +53,60 @@ const registerUser = asyncHandler(
     let avatar = null;
     let coverImage = null;
 
+    const { fullName, email, username, password } = req.body;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (
+      [fullName, email, username, password].some(
+        (feild) => feild?.trim() === ""
+      )
+    ) {
+      throw new ApiError(400, "Field is required");
+    }
+
+    if (password.length < 8 || password.length > 16) {
+      throw new ApiError(
+        400,
+        "Password cannot be shorter than 8 or longer than 16 characters."
+      );
+    }
+
+    if (!emailRegex.test(email.toLowerCase())) {
+      throw new ApiError(400, "Invalid email format");
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ username: username }, { email: email }],
+    });
+
+    if (existingUser) {
+      throw new ApiError(409, "User already exists");
+    }
+
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    let coverImageLocalPath;
+
+    if (
+      req.files &&
+      Array.isArray(req.files.coverImage) &&
+      req.files.coverImage.length > 0
+    ) {
+      coverImageLocalPath = req.files.coverImage[0]!.path;
+    }
+
+    if (!avatarLocalPath) {
+      throw new ApiError(400, "Avatar field is required");
+    }
+
+    avatar = await uploadFile(avatarLocalPath);
+
+    if (!avatar?.public_id)
+      throw new ApiError(500, "Error while uploading the avatar");
+
+    if (coverImageLocalPath) {
+      coverImage = await uploadFile(coverImageLocalPath);
+    }
     try {
-      const { fullName, email, username, password } = req.body;
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-      if (
-        [fullName, email, username, password].some(
-          (feild) => feild?.trim() === ""
-        )
-      ) {
-        throw new ApiError(400, "Field is required");
-      }
-
-      if (password.length < 8 || password.length > 16) {
-        throw new ApiError(
-          400,
-          "Password cannot be shorter than 8 or longer than 16 characters."
-        );
-      }
-
-      if (!emailRegex.test(email.toLowerCase())) {
-        throw new ApiError(400, "Invalid email format");
-      }
-
-      const existingUser = await User.findOne({
-        $or: [{ username: username }, { email: email }],
-      });
-
-      if (existingUser) {
-        throw new ApiError(409, "User already exists");
-      }
-
-      const avatarLocalPath = req.files?.avatar?.[0]?.path;
-      let coverImageLocalPath;
-
-      if (
-        req.files &&
-        Array.isArray(req.files.coverImage) &&
-        req.files.coverImage.length > 0
-      ) {
-        coverImageLocalPath = req.files.coverImage[0]!.path;
-      }
-
-      if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar field is required");
-      }
-
-      avatar = await uploadFile(avatarLocalPath);
-
-      if (coverImageLocalPath) {
-        coverImage = await uploadFile(coverImageLocalPath);
-      }
-
       const user = await User.create({
         fullName,
         avatar: {
@@ -124,14 +126,7 @@ const registerUser = asyncHandler(
         "-password -watchHistory"
       );
 
-      if (!createdUser) {
-        if (avatar?.public_id) await deleteFile(avatar.public_id);
-        if (coverImage?.public_id) await deleteFile(coverImage.public_id);
-        throw new ApiError(
-          500,
-          "Unable to register user due to internal server issues."
-        );
-      }
+      if (!createdUser) throw new ApiError(500, "Failed to register user");
 
       return res
         .status(201)
@@ -142,14 +137,28 @@ const registerUser = asyncHandler(
             "User registered sucessfully!"
           )
         );
-    } catch (error) {
-      if (avatar?.public_id) {
-        await deleteFile(avatar.public_id);
-      }
+    } catch (error: any) {
+      const avatarDeletion = await deleteFile(avatar.public_id);
+      if (!avatarDeletion || avatarDeletion.result !== "ok")
+        throw new ApiError(
+          500,
+          "Avatar deletion failed. The asset might be orphan"
+        );
       if (coverImage?.public_id) {
-        await deleteFile(coverImage.public_id);
+        const coverImageDeletion = await deleteFile(coverImage.public_id);
+        if (!coverImageDeletion || coverImageDeletion.result !== "ok")
+          throw new ApiError(
+            500,
+            "Cover Image deletion failed. The asset might be orphan"
+          );
       }
-      throw error;
+      console.error("Database Registration Error:", error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(
+        500,
+        error?.message || "Database registration failed. Assets cleared.",
+        error?.errors || []
+      );
     }
   }
 );
