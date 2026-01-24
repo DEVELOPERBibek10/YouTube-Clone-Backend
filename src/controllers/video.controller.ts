@@ -10,7 +10,6 @@ import type {
 } from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
-import type { Multer } from "multer";
 
 const getUploadVideoSignature = asyncHandler(async (req, res: Response) => {
   const folder = "vidtube/videos";
