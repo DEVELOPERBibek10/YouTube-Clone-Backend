@@ -49,6 +49,7 @@ const videoSchema = new Schema<IVideo>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      index: true,
     },
   },
   { timestamps: true }

@@ -23,7 +23,7 @@ export interface AuthTypedRequest<
   TParams = ParamsDictionary,
   TUser = IUserRequest,
 > extends Omit<Request, "body" | "files" | "params"> {
-  user?: TUser;
+  user: TUser;
   body: TBody;
   params: TParams;
   files?: TFile | undefined;
@@ -51,4 +51,9 @@ export interface VideoRequestBody {
   videoUrl: string;
   videoPublicId: string;
   duration: number;
+}
+
+export interface UpdateVideoDetailsBody {
+  title: string;
+  description: string;
 }

@@ -17,7 +17,6 @@ import type {
   TypedRequest,
   LoginUserBody,
   RegisterUserBody,
-  UserRequest,
 } from "../types/Request-Response/request.js";
 import type { Response, CookieOptions } from "express";
 import type { DecodedToken } from "../middlewares/auth.middleware.js";
@@ -290,37 +289,24 @@ const refreshAccessToken = asyncHandler(
 );
 
 const getCurrentUser = asyncHandler(
-  async (
-    req: AuthTypedRequest<null, null, null, UserRequest>,
-    res: Response
-  ) => {
-    const {
-      _id,
-      avatar,
-      coverImage,
-      fullName,
-      username,
-      email,
-      createdAt,
-      updatedAt,
-    } = req.user!;
+  async (req: AuthTypedRequest, res: Response) => {
+    const { _id } = req.user!;
 
-    return res.status(200).json(
-      new ApiResponse<UserResponse>(
-        200,
-        {
-          _id,
-          avatar,
-          coverImage,
-          fullName,
-          username,
-          email,
-          createdAt,
-          updatedAt,
-        },
-        "Current user fetched successfully"
-      )
-    );
+    const currentUser = await User.findById(_id).select("-password");
+
+    if (!currentUser || !currentUser._id) {
+      throw new ApiError(404, "User not found");
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse<UserResponse>(
+          200,
+          currentUser,
+          "Current user fetched successfully"
+        )
+      );
   }
 );
 
@@ -359,7 +345,7 @@ const updateDetails = asyncHandler(
   async (req: AuthTypedRequest<{ fullName: string }>, res) => {
     const { fullName } = req.body;
 
-    if (!fullName) {
+    if (!fullName.trim()) {
       throw new ApiError(400, "All fields are required");
     }
 
@@ -373,7 +359,7 @@ const updateDetails = asyncHandler(
       { new: true }
     ).select("-password -watchHistory");
 
-    if (!user) {
+    if (!user || !user._id) {
       throw new ApiError(404, "User not found");
     }
 
@@ -404,7 +390,7 @@ const updateAvatar = asyncHandler(
     const avatar = await uploadFile(avatarLocalFile, user.avatar.publicId);
 
     if (!avatar || !avatar.url) {
-      throw new ApiError(500, "Error while uploading avatar image");
+      throw new ApiError(500, "Error while updating avatar image");
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -473,7 +459,7 @@ const updateCoverImage = asyncHandler(
         new ApiResponse<UserResponse>(
           200,
           updatedUser,
-          "Cover Imae updated successfully"
+          "Cover Image updated successfully"
         )
       );
   }

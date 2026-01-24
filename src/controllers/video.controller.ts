@@ -5,11 +5,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import type {
   AuthTypedRequest,
+  UpdateVideoDetailsBody,
   VideoRequestBody,
 } from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
-import { User } from "../models/user.model.js";
+import type { Multer } from "multer";
 
 const getUploadVideoSignature = asyncHandler(async (req, res: Response) => {
   const folder = "vidtube/videos";
@@ -56,10 +57,6 @@ const uploadVideo = asyncHandler(
 
     if (!thumbnailLocalPath) throw new ApiError(400, "Thumbnail is required");
 
-    const user = await User.exists({ _id: req.user!._id });
-
-    if (!user) throw new ApiError(400, "Owner does not exists");
-
     const thumbnail = await uploadFile(thumbnailLocalPath);
 
     if (!thumbnail || !thumbnail.public_id) {
@@ -70,7 +67,7 @@ const uploadVideo = asyncHandler(
       const video = await Video.create({
         title,
         description,
-        owner: user._id,
+        owner: req.user!._id,
         isPublished,
         videoFile: {
           url: videoUrl,
@@ -114,6 +111,103 @@ const uploadVideo = asyncHandler(
   }
 );
 
-const updateVideoDetails = asyncHandler(async (req, res) => {});
+const updateVideoDetails = asyncHandler(
+  async (
+    req: AuthTypedRequest<UpdateVideoDetailsBody, null, { id: string }>,
+    res: Response
+  ) => {
+    const { title, description } = req.body;
+    const { id } = req.params;
+    const updateData: any = {};
 
-export { getUploadVideoSignature, uploadVideo };
+    if (!id) throw new ApiError(400, "Video id is required");
+    if (title?.trim()) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim();
+
+    if (Object.keys(updateData).length === 0) {
+      throw new ApiError(400, "No changes detected or provided");
+    }
+
+    const updatedVideoDetail = await Video.findOneAndUpdate(
+      { _id: id, owner: req.user?._id },
+      {
+        $set: updateData,
+      },
+      { new: true }
+    );
+
+    if (!updatedVideoDetail) {
+      throw new ApiError(404, "Video not found or unauthorized");
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, updatedVideoDetail, "Details updated sucessfully")
+      );
+  }
+);
+
+const updateThumbnail = asyncHandler(
+  async (req: AuthTypedRequest<null, any, { id: string }>, res: Response) => {
+    const { id } = req.params;
+    if (!id) throw new ApiError(400, "Video id is required");
+
+    const thumbnailLocalPath = req.files?.path;
+
+    if (!thumbnailLocalPath) {
+      throw new ApiError(400, "Thumbnial is a required field");
+    }
+
+    const video = await Video.findById(id)
+      .select("thumbnail.publicId thumbnail.url")
+      .lean();
+
+    if (!video?.thumbnail?.publicId) {
+      throw new ApiError(
+        404,
+        "Thumbnail not found to update or already deleted"
+      );
+    }
+
+    const thumbnail = await uploadFile(
+      video.thumbnail.url,
+      video.thumbnail.publicId
+    );
+
+    if (!thumbnail || !thumbnail.url) {
+      throw new ApiError(500, "Failed to upload thumbnail");
+    }
+
+    const updatedVideo = await Video.findOneAndUpdate(
+      {
+        _id: id,
+        owner: req.user._id,
+      },
+      {
+        $set: {
+          "thumbnail.url": thumbnail.url,
+          "thumbnail.publicId": thumbnail.public_id,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedVideo) {
+      throw new ApiError(404, "Video not found or unauthorized");
+    }
+
+    return res
+      .send(200)
+      .json(
+        new ApiResponse(200, updatedVideo, "Thumbnail updated sucessfully")
+      );
+  }
+);
+
+export {
+  getUploadVideoSignature,
+  uploadVideo,
+  updateVideoDetails,
+  updateThumbnail,
+};
