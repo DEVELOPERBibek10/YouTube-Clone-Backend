@@ -3,7 +3,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { NextFunction, Response } from "express";
-import type { AuthTypedRequest } from "../types/Request/request.js";
+import type { AuthTypedRequest } from "../types/Request-Response/request.js";
 
 export interface DecodedToken extends JwtPayload {
   _id: string;
@@ -27,7 +27,7 @@ export const verifyJWT = asyncHandler(
       process.env.ACCESS_TOKEN_SECRET!
     ) as DecodedToken;
 
-    const user = await User.findById(decodedToken._id).select("-password");
+    const user = await User.exists({ _id: decodedToken._id });
 
     if (!user) {
       throw new ApiError(401, "Invalid Access Token!");

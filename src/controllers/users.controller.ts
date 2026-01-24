@@ -5,18 +5,20 @@ import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
+import type { IUserDocument } from "../types/Model/User.js";
+
 import type {
   UserResponse,
-  IUserDocument,
   LoggedInUserResponse,
   ChannelProfileResponse,
-} from "../types/Model/User.js";
+} from "../types/Request-Response/response.js";
 import type {
   AuthTypedRequest,
+  TypedRequest,
   LoginUserBody,
   RegisterUserBody,
-  TypedRequest,
-} from "../types/Request/request.js";
+  UserRequest,
+} from "../types/Request-Response/request.js";
 import type { Response, CookieOptions } from "express";
 import type { DecodedToken } from "../middlewares/auth.middleware.js";
 
@@ -288,7 +290,10 @@ const refreshAccessToken = asyncHandler(
 );
 
 const getCurrentUser = asyncHandler(
-  async (req: AuthTypedRequest, res: Response) => {
+  async (
+    req: AuthTypedRequest<null, null, null, UserRequest>,
+    res: Response
+  ) => {
     const {
       _id,
       avatar,

@@ -6,7 +6,7 @@ import { ApiError } from "../utils/ApiError.js";
 import type {
   AuthTypedRequest,
   VideoRequestBody,
-} from "../types/Request/request.js";
+} from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
@@ -62,11 +62,8 @@ const uploadVideo = asyncHandler(
 
     const thumbnail = await uploadFile(thumbnailLocalPath);
 
-    if (!thumbnail) {
-      throw new ApiError(
-        400,
-        "Thumbnail upload is required to publish a video"
-      );
+    if (!thumbnail || !thumbnail.public_id) {
+      throw new ApiError(500, "Thumbnail uploading failed");
     }
 
     try {
@@ -88,7 +85,7 @@ const uploadVideo = asyncHandler(
 
       const createdVideo = await Video.exists({ _id: video._id });
 
-      if (!createdVideo) throw new ApiError(500, "Error uploading video");
+      if (!createdVideo?._id) throw new ApiError(500, "Error uploading video");
 
       return res
         .status(200)
@@ -116,5 +113,7 @@ const uploadVideo = asyncHandler(
     }
   }
 );
+
+const updateVideoDetails = asyncHandler(async (req, res) => {});
 
 export { getUploadVideoSignature, uploadVideo };

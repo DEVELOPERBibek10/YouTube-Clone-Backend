@@ -1,11 +1,10 @@
-import type { IUserDocument, IUserRequest } from "../Model/User.js";
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
+import type { Types } from "mongoose";
+import type { UserResponse } from "./response.js";
 
-export interface AuthFileRequest extends Request {
-  user?: IUserDocument;
-  file?: Express.Multer.File;
-  files?: Express.Multer.File[];
+export interface IUserRequest {
+  _id: Types.ObjectId;
 }
 
 export interface TypedRequest<
@@ -22,12 +21,15 @@ export interface AuthTypedRequest<
   TBody = any,
   TFile = any,
   TParams = ParamsDictionary,
+  TUser = IUserRequest,
 > extends Omit<Request, "body" | "files" | "params"> {
-  user?: IUserRequest;
+  user?: TUser;
   body: TBody;
   params: TParams;
   files?: TFile | undefined;
 }
+
+export interface UserRequest extends UserResponse {}
 
 export interface RegisterUserBody {
   fullName: string;
