@@ -18,6 +18,9 @@ const globalErrorHandler = (
     errors = "errors" in err && err.errors ? err.errors : [];
   }
 
+  if (err.name === "TokenExpiredError") {
+  }
+
   if (err.name === "ValidationError" && "errors" in err) {
     statusCode = 400;
     message = "Validation Failed";
@@ -30,6 +33,16 @@ const globalErrorHandler = (
     statusCode = 409;
     const duplicatedField = Object.keys(err.keyValue).join(", ");
     message = `Duplicate value for field(s): ${duplicatedField}`;
+  }
+
+  if (err.name === "JsonWebTokenError") {
+    message = "Invalid token. Please log in again.";
+    statusCode = 401;
+  }
+
+  if (err.name === "TokenExpiredError") {
+    statusCode = 401;
+    message = "Your session has expired. Please log in again.";
   }
 
   if (err.name === "CastError" && "path" in err) {
