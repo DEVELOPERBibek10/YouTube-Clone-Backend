@@ -11,7 +11,7 @@ import type {
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 
-const getUploadVideoSignature = asyncHandler(async (req, res: Response) => {
+const getVideoSignature = asyncHandler(async (req, res: Response) => {
   const folder = "vidtube/videos";
   const timestamp = Math.round(new Date().getTime() / 1000);
 
@@ -88,17 +88,24 @@ const uploadVideo = asyncHandler(
         .json(new ApiResponse(200, video, "Video uploaded Sucessfully."));
     } catch (error: any) {
       const thumbnailDeletion = await deleteFile(thumbnail.public_id);
-      if (!thumbnailDeletion || thumbnailDeletion.result !== "ok")
+      if (!thumbnailDeletion) {
         throw new ApiError(
           500,
           "Thumbnail deletion failed. The asset might be orphan"
         );
+      }
+      if (thumbnailDeletion.result !== "ok") {
+        throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
+      }
       const videoDeletion = await deleteFile(videoPublicId, "video");
-      if (!videoDeletion || videoDeletion.result !== "ok")
+      if (!videoDeletion)
         throw new ApiError(
           500,
           "Video deletion failed. The asset might be orphan"
         );
+      if (videoDeletion.result !== "ok") {
+        throw new ApiError(404, "Failed to locate the video on cloud.");
+      }
       console.error("Database Registration Error:", error);
       if (error instanceof ApiError) throw error;
       throw new ApiError(
@@ -120,11 +127,17 @@ const updateVideoDetails = asyncHandler(
     const updateData: any = {};
 
     if (!id) throw new ApiError(400, "Video id is required");
-    if (title?.trim()) updateData.title = title.trim();
+    if (title !== undefined) {
+      const trimmedTitle = title.trim();
+      if (trimmedTitle) {
+        throw new ApiError(400, "Title cannot be empty");
+      }
+      updateData.title = trimmedTitle;
+    }
     if (description !== undefined) updateData.description = description.trim();
 
     if (Object.keys(updateData).length === 0) {
-      throw new ApiError(400, "No changes detected or provided");
+      throw new ApiError(400, "Provide at least one field to update");
     }
 
     const updatedVideoDetail = await Video.findOneAndUpdate(
@@ -135,7 +148,7 @@ const updateVideoDetails = asyncHandler(
       { new: true }
     );
 
-    if (!updatedVideoDetail) {
+    if (!updatedVideoDetail || !updatedVideoDetail._id) {
       throw new ApiError(404, "Video not found or unauthorized");
     }
 
@@ -204,9 +217,53 @@ const updateThumbnail = asyncHandler(
   }
 );
 
+const deleteVideo = asyncHandler(
+  async (req: AuthTypedRequest<null, null, { id: string }>, res: Response) => {
+    const { id } = req.params;
+    if (!id) throw new ApiError(400, "Video id is required");
+
+    const video = await Video.findOneAndDelete({
+      _id: id,
+      owner: req.user._id,
+    });
+
+    if (!video) {
+      throw new ApiError(404, "Video not found or unauthorized");
+    }
+
+    const deleteThumbnailOnCloudinary = await deleteFile(
+      video.thumbnail.publicId
+    );
+
+    if (!deleteThumbnailOnCloudinary) {
+      throw new ApiError(500, "Error while deteting the thumbnail");
+    }
+
+    if (deleteThumbnailOnCloudinary.result !== "ok") {
+      throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
+    }
+
+    const deleteVideoOnCloudinary = await deleteFile(
+      video.videoFile.publicId,
+      "video"
+    );
+
+    if (!deleteVideoOnCloudinary) {
+      throw new ApiError(500, "Error while deteting the thumbnail");
+    }
+
+    if (deleteVideoOnCloudinary.result !== "ok") {
+      throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
+    }
+
+    res.status(200).json(new ApiResponse(200, {}, "Video deleted Sucessfully"));
+  }
+);
+
 export {
-  getUploadVideoSignature,
+  getVideoSignature,
   uploadVideo,
   updateVideoDetails,
   updateThumbnail,
+  deleteVideo,
 };
