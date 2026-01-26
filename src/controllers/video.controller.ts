@@ -256,7 +256,9 @@ const deleteVideo = asyncHandler(
       throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
     }
 
-    res.status(200).json(new ApiResponse(200, {}, "Video deleted Sucessfully"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Video deleted Sucessfully"));
   }
 );
 
