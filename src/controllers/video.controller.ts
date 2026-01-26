@@ -255,12 +255,20 @@ const deleteVideo = asyncHandler(
     }
 
     if (deleteVideoOnCloudinary.result !== "ok") {
-      throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
+      throw new ApiError(404, "Failed to locate the video on cloud.");
     }
 
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "Video deleted Sucessfully"));
+  }
+);
+
+export const getVideo = asyncHandler(
+  async (req: AuthTypedRequest<null, null, { id: string }>, res: Response) => {
+    const { id } = req.params;
+
+    if (!id) throw new ApiError(400, "Video id is required");
   }
 );
 
