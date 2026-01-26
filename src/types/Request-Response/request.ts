@@ -3,10 +3,6 @@ import type { Request } from "express";
 import type { Types } from "mongoose";
 import type { UserResponse } from "./response.js";
 
-export interface IUserRequest {
-  _id: Types.ObjectId;
-}
-
 export interface TypedRequest<
   TBody = any,
   TFiles = any,
@@ -21,9 +17,7 @@ export interface AuthTypedRequest<
   TBody = any,
   TFile = any,
   TParams = ParamsDictionary,
-  TUser = IUserRequest,
 > extends Omit<Request, "body" | "files" | "params"> {
-  user: TUser;
   body: TBody;
   params: TParams;
   files?: TFile | undefined;

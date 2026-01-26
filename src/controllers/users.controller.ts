@@ -220,7 +220,7 @@ const loginUser = asyncHandler(
 const logoutUser = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
     await User.findOneAndUpdate(
-      req.user!._id,
+      { _id: req.user!._id },
       {
         $unset: {
           refreshToken: 1,
@@ -290,23 +290,33 @@ const refreshAccessToken = asyncHandler(
 
 const getCurrentUser = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
-    const { _id } = req.user!;
+    const {
+      _id,
+      fullName,
+      username,
+      email,
+      avatar,
+      coverImage,
+      createdAt,
+      updatedAt,
+    } = req.user!;
 
-    const currentUser = await User.findById(_id).select("-password");
-
-    if (!currentUser || !currentUser._id) {
-      throw new ApiError(404, "User not found");
-    }
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse<UserResponse>(
-          200,
-          currentUser,
-          "Current user fetched successfully"
-        )
-      );
+    return res.status(200).json(
+      new ApiResponse<UserResponse>(
+        200,
+        {
+          _id,
+          fullName,
+          username,
+          email,
+          avatar,
+          coverImage,
+          createdAt,
+          updatedAt,
+        },
+        "Current user fetched successfully"
+      )
+    );
   }
 );
 
@@ -342,7 +352,7 @@ const changeCurrentPassword = asyncHandler(
 );
 
 const updateDetails = asyncHandler(
-  async (req: AuthTypedRequest<{ fullName: string }>, res) => {
+  async (req: AuthTypedRequest<{ fullName: string }>, res: Response) => {
     const { fullName } = req.body;
 
     if (!fullName.trim()) {
@@ -466,7 +476,10 @@ const updateCoverImage = asyncHandler(
 );
 
 const getUserChannelProfile = asyncHandler(
-  async (req: AuthTypedRequest<null, null, { username: string }>, res) => {
+  async (
+    req: AuthTypedRequest<null, null, { username: string }>,
+    res: Response
+  ) => {
     const { username } = req.params;
 
     if (!username?.trim()) throw new ApiError(400, "Not a valid username");
@@ -543,63 +556,65 @@ const getUserChannelProfile = asyncHandler(
   }
 );
 
-const getWatchHistory = asyncHandler(async (req: AuthTypedRequest, res) => {
-  const user = await User.aggregate([
-    {
-      $match: { _id: new mongoose.Types.ObjectId(req.user!._id) },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "watchHistory",
-        foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    username: 1,
-                    avatar: 1,
+const getWatchHistory = asyncHandler(
+  async (req: AuthTypedRequest, res: Response) => {
+    const user = await User.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(req.user!._id) },
+      },
+      {
+        $lookup: {
+          from: "videos",
+          localField: "watchHistory",
+          foreignField: "_id",
+          as: "watchHistory",
+          pipeline: [
+            {
+              $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                  {
+                    $project: {
+                      username: 1,
+                      avatar: 1,
+                    },
                   },
-                },
-              ],
-            },
-          },
-          {
-            $addFields: {
-              owner: {
-                $first: "$owner",
+                ],
               },
             },
-          },
-        ],
+            {
+              $addFields: {
+                owner: {
+                  $first: "$owner",
+                },
+              },
+            },
+          ],
+        },
       },
-    },
-  ]);
+    ]);
 
-  if (!user || !user[0].watchHistory) {
-    throw new ApiError(
-      500,
-      "OOPS! Something went wrong while fetching watch history."
-    );
+    if (!user || !user[0].watchHistory) {
+      throw new ApiError(
+        500,
+        "OOPS! Something went wrong while fetching watch history."
+      );
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          user[0].watchHistory,
+          "Watch history fetched sucessfully"
+        )
+      );
   }
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        user[0].watchHistory,
-        "Watch history fetched sucessfully"
-      )
-    );
-});
+);
 
 export {
   registerUser,

@@ -11,33 +11,35 @@ import type {
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 
-const getVideoSignature = asyncHandler(async (req, res: Response) => {
-  const folder = "vidtube/videos";
-  const timestamp = Math.round(new Date().getTime() / 1000);
+const getVideoSignature = asyncHandler(
+  async (req: AuthTypedRequest, res: Response) => {
+    const folder = "vidtube/videos";
+    const timestamp = Math.round(new Date().getTime() / 1000);
 
-  const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder },
-    process.env.CLOUDINARY_API_SECRET!
-  );
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder },
+      process.env.CLOUDINARY_API_SECRET!
+    );
 
-  if (signature.length === 0) {
-    throw new ApiError(500, "Failed to generate the video signature");
+    if (signature.length === 0) {
+      throw new ApiError(500, "Failed to generate the video signature");
+    }
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          signature,
+          timestamp,
+          folder,
+          cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+          apiKey: process.env.CLOUDINARY_API_KEY,
+        },
+        "Video signature generated sucessfully"
+      )
+    );
   }
-
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        signature,
-        timestamp,
-        folder,
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-        apiKey: process.env.CLOUDINARY_API_KEY,
-      },
-      "Video signature generated sucessfully"
-    )
-  );
-});
+);
 
 const uploadVideo = asyncHandler(
   async (req: AuthTypedRequest<VideoRequestBody>, res: Response) => {
@@ -194,7 +196,7 @@ const updateThumbnail = asyncHandler(
     const updatedVideo = await Video.findOneAndUpdate(
       {
         _id: id,
-        owner: req.user._id,
+        owner: req.user!._id,
       },
       {
         $set: {
@@ -224,7 +226,7 @@ const deleteVideo = asyncHandler(
 
     const video = await Video.findOneAndDelete({
       _id: id,
-      owner: req.user._id,
+      owner: req.user!._id,
     });
 
     if (!video) {
