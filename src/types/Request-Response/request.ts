@@ -7,7 +7,7 @@ export interface TypedRequest<
   TBody = any,
   TFiles = any,
   TParams = ParamsDictionary,
-> extends Omit<Request, "body" | "files" | "params"> {
+> extends Omit<Request, "body" | "files" | "params" | "user"> {
   body: TBody;
   params: TParams;
   files?: TFiles;

@@ -27,10 +27,12 @@ export const verifyJWT = asyncHandler(
       process.env.ACCESS_TOKEN_SECRET!
     ) as DecodedToken;
 
+    if (!decodedToken) throw new ApiError(401, "Unauthorized request");
+
     const user = await User.findById(decodedToken._id).select("-password");
 
     if (!user) {
-      throw new ApiError(401, "Invalid Access Token!");
+      throw new ApiError(404, "User not found!");
     }
 
     req.user = user;
