@@ -10,6 +10,7 @@ import type {
 } from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
+import { User } from "../models/user.model.js";
 
 const getVideoSignature = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
@@ -121,14 +122,14 @@ const uploadVideo = asyncHandler(
 
 const updateVideoDetails = asyncHandler(
   async (
-    req: AuthTypedRequest<UpdateVideoDetailsBody, null, { id: string }>,
+    req: AuthTypedRequest<UpdateVideoDetailsBody, null, { videoId: string }>,
     res: Response
   ) => {
     const { title, description } = req.body;
-    const { id } = req.params;
+    const { videoId } = req.params;
     const updateData: any = {};
 
-    if (!id) throw new ApiError(400, "Video id is required");
+    if (!videoId) throw new ApiError(400, "Video id is required");
     if (title !== undefined) {
       const trimmedTitle = title.trim();
       if (trimmedTitle) {
@@ -143,7 +144,7 @@ const updateVideoDetails = asyncHandler(
     }
 
     const updatedVideoDetail = await Video.findOneAndUpdate(
-      { _id: id, owner: req.user?._id },
+      { _id: videoId, owner: req.user?._id },
       {
         $set: updateData,
       },
@@ -163,9 +164,12 @@ const updateVideoDetails = asyncHandler(
 );
 
 const updateThumbnail = asyncHandler(
-  async (req: AuthTypedRequest<null, any, { id: string }>, res: Response) => {
-    const { id } = req.params;
-    if (!id) throw new ApiError(400, "Video id is required");
+  async (
+    req: AuthTypedRequest<null, any, { videoId: string }>,
+    res: Response
+  ) => {
+    const { videoId } = req.params;
+    if (!videoId) throw new ApiError(400, "Video id is required");
 
     const thumbnailLocalPath = req.files?.path;
 
@@ -173,7 +177,7 @@ const updateThumbnail = asyncHandler(
       throw new ApiError(400, "Thumbnial is a required field");
     }
 
-    const video = await Video.findById(id)
+    const video = await Video.findById(videoId)
       .select("thumbnail.publicId thumbnail.url")
       .lean();
 
@@ -195,7 +199,7 @@ const updateThumbnail = asyncHandler(
 
     const updatedVideo = await Video.findOneAndUpdate(
       {
-        _id: id,
+        _id: videoId,
         owner: req.user!._id,
       },
       {
@@ -220,12 +224,15 @@ const updateThumbnail = asyncHandler(
 );
 
 const deleteVideo = asyncHandler(
-  async (req: AuthTypedRequest<null, null, { id: string }>, res: Response) => {
-    const { id } = req.params;
-    if (!id) throw new ApiError(400, "Video id is required");
+  async (
+    req: AuthTypedRequest<null, null, { videoId: string }>,
+    res: Response
+  ) => {
+    const { videoId } = req.params;
+    if (!videoId) throw new ApiError(400, "Video id is required");
 
     const video = await Video.findOneAndDelete({
-      _id: id,
+      _id: videoId,
       owner: req.user!._id,
     });
 
@@ -265,10 +272,12 @@ const deleteVideo = asyncHandler(
 );
 
 export const getVideo = asyncHandler(
-  async (req: AuthTypedRequest<null, null, { id: string }>, res: Response) => {
-    const { id } = req.params;
-
-    if (!id) throw new ApiError(400, "Video id is required");
+  async (
+    req: AuthTypedRequest<null, null, { videoId: string }>,
+    res: Response
+  ) => {
+    const { videoId } = req.params;
+    if (!videoId) throw new ApiError(400, "Video id is required");
   }
 );
 
