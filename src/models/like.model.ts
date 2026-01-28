@@ -18,4 +18,23 @@ const likeSchema = new Schema(
   { timestamps: true }
 );
 
+likeSchema.index(
+  { likedBy: 1, video: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { video: { $exists: true } },
+  }
+);
+
+likeSchema.index(
+  { likedBy: 1, comment: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { comment: { $exists: true } },
+  }
+);
+
+likeSchema.index({ video: 1 });
+likeSchema.index({ comment: 1 });
+
 export const Like = mongoose.model("Like", likeSchema);
