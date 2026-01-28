@@ -10,7 +10,10 @@ import type {
 } from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
-import { User } from "../models/user.model.js";
+import mongoose from "mongoose";
+import { Like } from "../models/like.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Subscription } from "../models/subscription.model.js";
 
 const getVideoSignature = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
@@ -278,6 +281,83 @@ export const getVideo = asyncHandler(
   ) => {
     const { videoId } = req.params;
     if (!videoId) throw new ApiError(400, "Video id is required");
+
+    const videoResult = await Video.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          videoFile: 1,
+          title: 1,
+          description: 1,
+          duration: 1,
+          views: 1,
+          owner: 1,
+        },
+      },
+    ]);
+
+    if (!videoResult) throw new ApiError(404, "Video not found");
+
+    const video = videoResult[0];
+
+    const likesPromise = Like.countDocuments({ video: videoId });
+    const commentsPromise = Comment.countDocuments({ video: videoId });
+    const subscribersPromise = Subscription.countDocuments({
+      channel: video.owner._id,
+    });
+
+    const isLikedPromise = Like.exists({
+      likedBy: req.user?._id,
+      video: videoId,
+    });
+    const isSubscribedPromise = Subscription.exists({
+      channel: video.owner._id,
+      subscriber: req.user?._id,
+    });
+
+    const [likes, comments, subscribers, isLiked, isSubscribed] =
+      await Promise.all([
+        likesPromise,
+        commentsPromise,
+        subscribersPromise,
+        isLikedPromise,
+        isSubscribedPromise,
+      ]);
+
+    const videoResponse = {
+      ...video,
+      likesCount: likes,
+      commentsCount: comments,
+      subscriberCount: subscribers,
+      isLiked: !!isLiked,
+      isSubscribed: !!isSubscribed,
+    };
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          videoResponse,
+          "Video details fetched successfully"
+        )
+      );
   }
 );
 
