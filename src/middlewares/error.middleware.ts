@@ -18,9 +18,6 @@ const globalErrorHandler = (
     errors = "errors" in err && err.errors ? err.errors : [];
   }
 
-  if (err.name === "TokenExpiredError") {
-  }
-
   if (err.name === "ValidationError" && "errors" in err) {
     statusCode = 400;
     message = "Validation Failed";
