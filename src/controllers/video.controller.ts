@@ -361,6 +361,10 @@ export const getVideo = asyncHandler(
   }
 );
 
+export const getAllVideos = asyncHandler(async (req: AuthTypedRequest, res) => {
+  const { page = 1, limit = 25 } = req.query;
+});
+
 export {
   getVideoSignature,
   uploadVideo,
