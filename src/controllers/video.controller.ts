@@ -361,9 +361,73 @@ export const getVideo = asyncHandler(
   }
 );
 
-export const getAllVideos = asyncHandler(async (req: AuthTypedRequest, res) => {
-  const { page = 1, limit = 25 } = req.query;
-});
+export const getAllVideos = asyncHandler(
+  async (req: AuthTypedRequest, res: Response) => {
+    const { page = 1, limit = 15, sortBy, sortType, query } = req.query;
+    const pageNumber = parseInt(page as string);
+    const limitNumber = parseInt(limit as string);
+    const skip = (pageNumber - 1) * limitNumber;
+    const pipeline: any[] = [];
+
+    if (query) {
+      pipeline.push({
+        $search: {
+          index: "default",
+          text: {
+            query: query,
+            path: ["title"],
+            fuzzy: { maxEdits: 2 },
+          },
+        },
+      });
+    } else {
+      pipeline.push(
+        { $match: { isPublished: true } },
+        { $sort: { createdAt: -1 } }
+      );
+    }
+
+    const sortDirection = sortType == "asc" ? 1 : -1;
+    if (sortBy) {
+      pipeline.push({ $sort: { [sortBy as string]: sortDirection } });
+    }
+
+    pipeline.push({
+      $facet: {
+        videos: [
+          { $skip: skip },
+          { $limit: limitNumber },
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+            },
+          },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    });
+
+    const result = await Video.aggregate(pipeline);
+
+    if (!result) throw new ApiError(404, "No videos found or unauthorized");
+
+    const videos = result[0].videos;
+    const totalVideos = result[0].totalCount[0]?.count || 0;
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { videos, totalVideos, page: pageNumber, limit: limitNumber },
+          "Videos fetched successfully"
+        )
+      );
+  }
+);
 
 export {
   getVideoSignature,
