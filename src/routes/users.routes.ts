@@ -8,6 +8,8 @@ import {
   updateDetails,
   updateAvatar,
   updateCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
 } from "../controllers/users.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -39,7 +41,9 @@ userRouter
   .route("/update-avatar")
   .patch(verifyJWT, upload.single("avatar"), updateAvatar);
 userRouter
-  .route("/update-coverImage")
+  .route("/update-cover-image")
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
+userRouter.route("/profile/:username").get(verifyJWT, getUserChannelProfile);
+userRouter.route("/watch-history").get(verifyJWT, getWatchHistory);
 
 export default userRouter;
