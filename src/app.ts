@@ -20,8 +20,10 @@ app.use(cookieParser());
 
 import userRouter from "./routes/users.routes.js";
 import globalErrorHandler from "./middlewares/error.middleware.js";
+import videoRouter from "./routes/videos.routes.js";
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/video", videoRouter);
 app.use(globalErrorHandler);
 
 export default app;
