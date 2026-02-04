@@ -363,20 +363,20 @@ export const getVideo = asyncHandler(
 
 export const getAllVideos = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
-    const { page = 1, limit = 15, sortBy, sortType, query } = req.query;
+    const { page = 1, limit = 15, sortBy, sortType, searchText } = req.query;
     const pageNumber = parseInt(page as string);
     const limitNumber = parseInt(limit as string);
     const skip = (pageNumber - 1) * limitNumber;
     const pipeline: any[] = [];
 
-    if (query) {
+    if (searchText) {
       pipeline.push(
         { $match: { isPublished: true } },
         {
           $search: {
             index: "default",
             text: {
-              query: query,
+              query: searchText,
               path: ["title"],
               fuzzy: { maxEdits: 2 },
             },
