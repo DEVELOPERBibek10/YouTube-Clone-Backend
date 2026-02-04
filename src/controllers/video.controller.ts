@@ -444,7 +444,7 @@ export const getAllVideos = asyncHandler(
 
 const getSuggestions = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
-    const searchQuery = req.query.q;
+    const searchQuery = req.query.q || "";
 
     if (!searchQuery) {
       return res.status(200).json([]);
