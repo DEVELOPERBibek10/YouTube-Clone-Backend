@@ -403,6 +403,15 @@ export const getAllVideos = asyncHandler(
               localField: "owner",
               foreignField: "_id",
               as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    _id: 0,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
             },
           },
         ],
