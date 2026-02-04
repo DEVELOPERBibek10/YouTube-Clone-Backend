@@ -371,6 +371,7 @@ export const getAllVideos = asyncHandler(
 
     if (query) {
       pipeline.push(
+        { $match: { isPublished: true } },
         {
           $search: {
             index: "default",
@@ -381,7 +382,7 @@ export const getAllVideos = asyncHandler(
             },
           },
         },
-        { $sort: { $meta: "score" } }
+        { $sort: { $meta: "searchScore" } }
       );
     } else {
       pipeline.push(
@@ -441,10 +442,55 @@ export const getAllVideos = asyncHandler(
   }
 );
 
+const getSuggestions = asyncHandler(
+  async (req: AuthTypedRequest, res: Response) => {
+    const searchQuery = req.query.q;
+
+    if (!searchQuery) {
+      return res.status(200).json([]);
+    }
+
+    const suggestions = await Video.aggregate([
+      { $match: { isPublished: true } },
+      {
+        $search: {
+          index: "default",
+          autocomplete: {
+            query: searchQuery,
+            path: "title",
+            tokenOrder: "sequential",
+            fuzzy: {
+              maxEdits: 2,
+            },
+          },
+        },
+      },
+      {
+        $limit: 10,
+      },
+      {
+        $project: {
+          _id: 0,
+          title: 1,
+        },
+      },
+    ]);
+
+    if (!suggestions) {
+      return res.send(200).json([]);
+    }
+
+    const titles = suggestions.map((v) => v.title);
+
+    return res.status(200).json(titles);
+  }
+);
+
 export {
   getVideoSignature,
   uploadVideo,
   updateVideoDetails,
   updateThumbnail,
   deleteVideo,
+  getSuggestions,
 };
