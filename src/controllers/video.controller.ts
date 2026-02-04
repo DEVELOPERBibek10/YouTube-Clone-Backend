@@ -370,16 +370,19 @@ export const getAllVideos = asyncHandler(
     const pipeline: any[] = [];
 
     if (query) {
-      pipeline.push({
-        $search: {
-          index: "default",
-          text: {
-            query: query,
-            path: ["title"],
-            fuzzy: { maxEdits: 2 },
+      pipeline.push(
+        {
+          $search: {
+            index: "default",
+            text: {
+              query: query,
+              path: ["title"],
+              fuzzy: { maxEdits: 2 },
+            },
           },
         },
-      });
+        { $sort: { $meta: "score" } }
+      );
     } else {
       pipeline.push(
         { $match: { isPublished: true } },
