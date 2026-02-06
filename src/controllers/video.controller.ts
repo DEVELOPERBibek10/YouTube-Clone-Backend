@@ -378,7 +378,7 @@ export const getAllVideos = asyncHandler(
             text: {
               query: searchText,
               path: ["title"],
-              fuzzy: { maxEdits: 2 },
+              fuzzy: { maxEdits: 3 },
             },
           },
         },
@@ -460,7 +460,7 @@ const getSuggestions = asyncHandler(
             path: "title",
             tokenOrder: "sequential",
             fuzzy: {
-              maxEdits: 2,
+              maxEdits: 3,
             },
           },
         },

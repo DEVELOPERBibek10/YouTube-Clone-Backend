@@ -16,6 +16,7 @@ export interface IVideo extends Document {
   views: number;
   isPublished: boolean;
   owner: mongoose.Types.ObjectId;
+  title_embedding: number[];
   createdAt: Date;
   updatedAt: Date;
 }

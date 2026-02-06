@@ -51,6 +51,10 @@ const videoSchema = new Schema<IVideo>(
       ref: "User",
       index: true,
     },
+    title_embedding: {
+      type: [Number],
+      default: [],
+    },
   },
   { timestamps: true }
 );
