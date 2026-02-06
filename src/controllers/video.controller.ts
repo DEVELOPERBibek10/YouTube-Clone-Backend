@@ -14,6 +14,7 @@ import mongoose from "mongoose";
 import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
 import { Subscription } from "../models/subscription.model.js";
+import getVectorEmbedding from "../utils/vectorEmbedding.js";
 
 const getVideoSignature = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
@@ -368,21 +369,20 @@ export const getAllVideos = asyncHandler(
     const limitNumber = parseInt(limit as string);
     const skip = (pageNumber - 1) * limitNumber;
     const pipeline: any[] = [];
+    const queryVector = await getVectorEmbedding(searchText as string);
 
     if (searchText) {
       pipeline.push(
         { $match: { isPublished: true } },
         {
-          $search: {
-            index: "default",
-            text: {
-              query: searchText,
-              path: ["title"],
-              fuzzy: { maxEdits: 3 },
-            },
+          $vectorSearch: {
+            index: "video_title_index",
+            path: "title_embedding",
+            queryVector: queryVector,
+            numCandidates: 100,
+            limit: 10,
           },
-        },
-        { $sort: { $meta: "searchScore" } }
+        }
       );
     } else {
       pipeline.push(
