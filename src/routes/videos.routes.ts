@@ -24,7 +24,7 @@ videoRouter
   .route("/update-thumbnail/:videoId")
   .patch(verifyJWT, upload.single("thumbnail"), updateThumbnail);
 videoRouter.route("/delete/:videoId").delete(verifyJWT, deleteVideo);
-videoRouter.route("/all").get(verifyJWT, getAllVideos);
+videoRouter.route("").get(verifyJWT, getAllVideos);
 videoRouter.route("/search").get(verifyJWT, getSuggestions);
 
 export default videoRouter;
