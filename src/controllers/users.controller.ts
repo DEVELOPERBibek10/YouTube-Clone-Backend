@@ -484,6 +484,10 @@ const getUserChannelProfile = asyncHandler(
 
     if (!username?.trim()) throw new ApiError(400, "Not a valid username");
 
+    if (!mongoose.Types.ObjectId.isValid(req.user!._id)) {
+      throw new ApiError(400, "User id is malformed!");
+    }
+
     const channel = await User.aggregate([
       {
         $match: { username: username?.toLowerCase() },
@@ -558,6 +562,9 @@ const getUserChannelProfile = asyncHandler(
 
 const getWatchHistory = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
+    if (!mongoose.Types.ObjectId.isValid(req.user!._id)) {
+      throw new ApiError(400, "User id is malformed!");
+    }
     const user = await User.aggregate([
       {
         $match: { _id: new mongoose.Types.ObjectId(req.user!._id) },

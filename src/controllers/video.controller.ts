@@ -91,8 +91,8 @@ const uploadVideo = asyncHandler(
       if (!createdVideo?._id) throw new ApiError(500, "Error uploading video");
 
       return res
-        .status(200)
-        .json(new ApiResponse(200, video, "Video uploaded Sucessfully."));
+        .status(201)
+        .json(new ApiResponse(201, video, "Video uploaded Sucessfully."));
     } catch (error: any) {
       const thumbnailDeletion = await deleteFile(thumbnail.public_id);
       if (!thumbnailDeletion) {
