@@ -352,10 +352,10 @@ const changeCurrentPassword = asyncHandler(
 );
 
 const updateDetails = asyncHandler(
-  async (req: AuthTypedRequest<{ fullName: string }>, res: Response) => {
-    const { fullName } = req.body;
+  async (req: AuthTypedRequest<{ username: string }>, res: Response) => {
+    const { username } = req.body;
 
-    if (!fullName.trim()) {
+    if (!username.trim()) {
       throw new ApiError(400, "All fields are required");
     }
 
@@ -363,7 +363,7 @@ const updateDetails = asyncHandler(
       req.user?._id,
       {
         $set: {
-          fullName,
+          username,
         },
       },
       { new: true }
