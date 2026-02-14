@@ -539,8 +539,12 @@ const getUserChannelProfile = asyncHandler(
           subscribersCount: 1,
           channelsSubscribedToCount: 1,
           isSubscribed: 1,
-          avatar: 1,
-          coverImage: 1,
+          avatar: {
+            url: 1,
+          },
+          coverImage: {
+            url: 1,
+          },
           email: 1,
         },
       },
