@@ -136,7 +136,7 @@ const updateVideoDetails = asyncHandler(
     if (!videoId) throw new ApiError(400, "Video id is required");
     if (title !== undefined) {
       const trimmedTitle = title.trim();
-      if (trimmedTitle) {
+      if (!trimmedTitle) {
         throw new ApiError(400, "Title cannot be empty");
       }
       updateData.title = trimmedTitle;
@@ -175,7 +175,7 @@ const updateThumbnail = asyncHandler(
     const { videoId } = req.params;
     if (!videoId) throw new ApiError(400, "Video id is required");
 
-    const thumbnailLocalPath = req.files?.path;
+    const thumbnailLocalPath = req.file?.path;
 
     if (!thumbnailLocalPath) {
       throw new ApiError(400, "Thumbnial is a required field");
@@ -283,6 +283,10 @@ export const getVideo = asyncHandler(
     const { videoId } = req.params;
     if (!videoId) throw new ApiError(400, "Video id is required");
 
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      throw new ApiError(400, "Malformed video id!");
+    }
+
     const videoResult = await Video.aggregate([
       { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
       {
@@ -299,6 +303,11 @@ export const getVideo = asyncHandler(
               },
             },
           ],
+        },
+      },
+      {
+        $addFields: {
+          owner: { $arrayElemAt: ["$owner", 0] },
         },
       },
       {
@@ -328,7 +337,7 @@ export const getVideo = asyncHandler(
       video: videoId,
     });
     const isSubscribedPromise = Subscription.exists({
-      channel: video.owner._id,
+      channel: Array.isArray(video),
       subscriber: req.user?._id,
     });
 
