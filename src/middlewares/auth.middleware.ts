@@ -1,5 +1,5 @@
 import { User } from "../models/user.model.js";
-import jwt, { JsonWebTokenError, type JwtPayload } from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { NextFunction, Response } from "express";
