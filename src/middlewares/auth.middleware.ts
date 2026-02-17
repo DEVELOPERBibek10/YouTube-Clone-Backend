@@ -1,5 +1,5 @@
 import { User } from "../models/user.model.js";
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import jwt, { JsonWebTokenError, type JwtPayload } from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { NextFunction, Response } from "express";
@@ -19,24 +19,36 @@ export const verifyJWT = asyncHandler(
       req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
-      throw new ApiError(401, "Unauthorized request");
+      throw new ApiError(401, "UNAUTHORIZED", "Unauthorized request");
     }
+    try {
+      const decodedToken = jwt.verify(
+        token,
+        process.env.ACCESS_TOKEN_SECRET!
+      ) as DecodedToken;
 
-    const decodedToken = jwt.verify(
-      token,
-      process.env.ACCESS_TOKEN_SECRET!
-    ) as DecodedToken;
+      const user = await User.findById(decodedToken._id).select("-password");
 
-    if (!decodedToken) throw new ApiError(401, "Unauthorized request");
+      if (!user) {
+        throw new ApiError(404, "User not found!");
+      }
 
-    const user = await User.findById(decodedToken._id).select("-password");
+      req.user = user;
 
-    if (!user) {
-      throw new ApiError(404, "User not found!");
+      next();
+    } catch (error) {
+      if (error instanceof ApiError) next(error);
+      if (error instanceof jwt.TokenExpiredError) {
+        return next(
+          new ApiError(401, "ACCESS_TOKEN_EXPIRED", "Session expired")
+        );
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        return next(
+          new ApiError(401, "INVALID_ACCESS_TOKEN", "Invalid access token")
+        );
+      }
+      return next(new ApiError(500, "INTERNAL_ERROR", "Internal Server Error"));
     }
-
-    req.user = user;
-
-    next();
   }
 );

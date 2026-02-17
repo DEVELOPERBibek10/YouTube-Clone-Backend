@@ -27,7 +27,11 @@ const getVideoSignature = asyncHandler(
     );
 
     if (signature.length === 0) {
-      throw new ApiError(500, "Failed to generate the video signature");
+      throw new ApiError(
+        500,
+        "INTERNAL_SERVER_ERROR",
+        "Failed to generate the video signature"
+      );
     }
 
     return res.status(200).json(
@@ -58,15 +62,28 @@ const uploadVideo = asyncHandler(
     } = req.body;
 
     if (!videoUrl || !videoPublicId)
-      throw new ApiError(400, "Video Url and publicId are required");
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELDS",
+        "Video Url and publicId are required"
+      );
     const thumbnailLocalPath = req.file?.path;
 
-    if (!thumbnailLocalPath) throw new ApiError(400, "Thumbnail is required");
+    if (!thumbnailLocalPath)
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELD",
+        "Thumbnail is required"
+      );
 
     const thumbnail = await uploadFile(thumbnailLocalPath);
 
     if (!thumbnail || !thumbnail.public_id) {
-      throw new ApiError(500, "Thumbnail uploading failed");
+      throw new ApiError(
+        500,
+        "INTERNAL_SERVER_ERROR",
+        "Thumbnail uploading failed"
+      );
     }
 
     try {

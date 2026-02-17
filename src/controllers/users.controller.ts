@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
 import type { IUserDocument } from "../types/Model/User.js";
 
@@ -246,16 +246,19 @@ const logoutUser = asyncHandler(
 
 const refreshAccessToken = asyncHandler(
   async (req: TypedRequest, res: Response) => {
-    if (!req.cookies) throw new ApiError(403, "Forbidden request");
+    const incomingRefreshToken = req.cookies.refreshToken;
 
-    const incommingRefreshToken = req.cookies.refreshToken;
-
-    if (!incommingRefreshToken) {
-      throw new ApiError(401, "Invalid refresh token!");
+    if (!incomingRefreshToken) {
+      throw new ApiError(
+        401,
+        "UNAUTHORIZED_REQUEST",
+        "No refresh token provided"
+      );
     }
+
     try {
       const decodedToken = jwt.verify(
-        incommingRefreshToken,
+        incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET!
       ) as DecodedToken;
 
@@ -264,7 +267,13 @@ const refreshAccessToken = asyncHandler(
       if (!user) {
         throw new ApiError(404, "User not found");
       }
-
+      if (incomingRefreshToken !== user.refreshToken) {
+        throw new ApiError(
+          401,
+          "REFRESH_TOKEN_INVALID",
+          "Token is expired or used"
+        );
+      }
       const { accessToken, refreshToken: newRefreshToken } =
         await generateAccessAndRefreshToken(user._id);
 
@@ -280,10 +289,17 @@ const refreshAccessToken = asyncHandler(
         .cookie("refreshToken", newRefreshToken, options)
         .json(new ApiResponse<null>(200, null, "Access token refreshed"));
     } catch (error) {
-      if (error instanceof ApiError) {
-        throw new ApiError(401, error?.message || "Invalid refresh token");
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new ApiError(
+          401,
+          "REFRESH_TOKEN_EXPIRED",
+          "Session expired, please login again"
+        );
       }
-      throw new ApiError(401, "Invalid refresh Token");
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new ApiError(401, "INVALID_TOKEN", "Invalid refresh token");
+      }
+      throw error;
     }
   }
 );
@@ -329,15 +345,17 @@ const changeCurrentPassword = asyncHandler(
 
     const user = await User.findById(req.user?._id);
 
-    if (!user) throw new ApiError(400, "User doesn't exist.");
+    if (!user) throw new ApiError(404, "NOT_FOUND", "User doesn't exist.");
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
-    if (!isPasswordCorrect) throw new ApiError(400, "Invalid old password");
+    if (!isPasswordCorrect)
+      throw new ApiError(400, "INVALID_OLD_PASSWORD", "Invalid old password");
 
     if (newPassword.length < 8 || newPassword.length > 16) {
       throw new ApiError(
         400,
+        "PASSWORD_TOO_SHORT",
         "Password cannot be shorter than 8 or longer than 16 characters."
       );
     }
@@ -345,8 +363,16 @@ const changeCurrentPassword = asyncHandler(
     user.password = newPassword;
     await user.save({ validateBeforeSave: false });
 
+    const options: CookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    };
+
     return res
       .status(200)
+      .cookie("refreshToken", "", options)
+      .cookie("accessToken", "", options)
       .json(new ApiResponse<{}>(200, {}, "Password changed successfully!"));
   }
 );
@@ -356,7 +382,11 @@ const updateDetails = asyncHandler(
     const { username } = req.body;
 
     if (!username.trim()) {
-      throw new ApiError(400, "All fields are required");
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELDS",
+        "All fields are required"
+      );
     }
 
     const user = await User.findByIdAndUpdate(
@@ -370,7 +400,7 @@ const updateDetails = asyncHandler(
     ).select("-password -watchHistory");
 
     if (!user || !user._id) {
-      throw new ApiError(404, "User not found");
+      throw new ApiError(404, "NOT_FOUND", "User not found");
     }
 
     return res
@@ -389,18 +419,27 @@ const updateAvatar = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
     const avatarLocalFile = req.file?.path;
 
-    if (!avatarLocalFile) throw new ApiError(400, "Avatar image is required.");
+    if (!avatarLocalFile)
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELD",
+        "Avatar image is required."
+      );
 
     const user = await User.findById(req.user?._id).select(
       "+avatar.publicId -password -watchHistory"
     );
 
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, "NOT_FOUND", "User not found");
 
     const avatar = await uploadFile(avatarLocalFile, user.avatar.publicId);
 
     if (!avatar || !avatar.url) {
-      throw new ApiError(500, "Error while updating avatar image");
+      throw new ApiError(
+        500,
+        "INTERNAL_SERVER_ERROR",
+        "Error while updating avatar image"
+      );
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -414,7 +453,8 @@ const updateAvatar = asyncHandler(
       { new: true }
     ).select("-password -watchHistory");
 
-    if (!updatedUser) throw new ApiError(404, "User not found");
+    if (!updatedUser)
+      throw new ApiError(404, "RES_NOT_FOUND", "User not found");
 
     return res
       .status(200)
@@ -482,11 +522,8 @@ const getUserChannelProfile = asyncHandler(
   ) => {
     const { username } = req.params;
 
-    if (!username?.trim()) throw new ApiError(400, "Not a valid username");
-
-    if (!mongoose.Types.ObjectId.isValid(req.user!._id)) {
-      throw new ApiError(400, "User id is malformed!");
-    }
+    if (!username?.trim())
+      throw new ApiError(400, "PARAMS_MISSING", "Username is required");
 
     const channel = await User.aggregate([
       {
@@ -550,7 +587,8 @@ const getUserChannelProfile = asyncHandler(
       },
     ]);
 
-    if (!channel?.length) throw new ApiError(404, "Channel does not exists!");
+    if (!channel?.length)
+      throw new ApiError(404, "RES_NOT_FOUND", "Channel does not exist!");
 
     return res
       .status(200)
@@ -566,9 +604,6 @@ const getUserChannelProfile = asyncHandler(
 
 const getWatchHistory = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
-    if (!mongoose.Types.ObjectId.isValid(req.user!._id)) {
-      throw new ApiError(400, "User id is malformed!");
-    }
     const user = await User.aggregate([
       {
         $match: { _id: new mongoose.Types.ObjectId(req.user!._id) },
@@ -610,10 +645,11 @@ const getWatchHistory = asyncHandler(
       },
     ]);
 
-    if (!user || !user[0].watchHistory) {
+    if (!user.length || !user[0]?.watchHistory) {
       throw new ApiError(
-        500,
-        "OOPS! Something went wrong while fetching watch history."
+        404,
+        "RES_NOT_FOUND",
+        "Watch history could not be found for this user."
       );
     }
 
