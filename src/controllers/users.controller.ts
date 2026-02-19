@@ -35,7 +35,8 @@ const generateAccessAndRefreshToken = async (
 
     return { accessToken, refreshToken };
   } catch (error) {
-    if (error instanceof Error) throw new ApiError(500, error.message);
+    if (error instanceof Error)
+      throw new ApiError(404, "USER_NOT_FOUND", error.message);
     throw new ApiError(500, "Unable to generate refresh and access token !");
   }
 };
@@ -68,12 +69,13 @@ const registerUser = asyncHandler(
     if (password.length < 8 || password.length > 16) {
       throw new ApiError(
         400,
+        "INVALID_PASSWORD",
         "Password cannot be shorter than 8 or longer than 16 characters."
       );
     }
 
     if (!emailRegex.test(email.toLowerCase())) {
-      throw new ApiError(400, "Invalid email format");
+      throw new ApiError(400, "INVALID_EMAIL_FORMAT", "Invalid email format");
     }
 
     const existingUser = await User.findOne({
@@ -81,7 +83,11 @@ const registerUser = asyncHandler(
     });
 
     if (existingUser) {
-      throw new ApiError(409, "User already exists");
+      throw new ApiError(
+        409,
+        "USER_ALREADY_EXISTS",
+        "A user with this email or username already exists."
+      );
     }
 
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
@@ -96,13 +102,21 @@ const registerUser = asyncHandler(
     }
 
     if (!avatarLocalPath) {
-      throw new ApiError(400, "Avatar field is required");
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELD",
+        "Avatar field is required"
+      );
     }
 
     avatar = await uploadFile(avatarLocalPath);
 
     if (!avatar?.public_id)
-      throw new ApiError(500, "Error while uploading the avatar");
+      throw new ApiError(
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
+        "Error while uploading the avatar"
+      );
 
     if (coverImageLocalPath) {
       coverImage = await uploadFile(coverImageLocalPath);
@@ -127,7 +141,12 @@ const registerUser = asyncHandler(
         "-password -watchHistory"
       );
 
-      if (!createdUser) throw new ApiError(500, "Failed to register user");
+      if (!createdUser)
+        throw new ApiError(
+          500,
+          "INTERNAL_SERVER_ERROR",
+          "Failed to register user"
+        );
 
       return res
         .status(201)
@@ -142,14 +161,16 @@ const registerUser = asyncHandler(
       const avatarDeletion = await deleteFile(avatar.public_id);
       if (!avatarDeletion || avatarDeletion.result !== "ok")
         throw new ApiError(
-          500,
+          502,
+          "STORAGE_SERVICE_UNAVAILABLE",
           "Avatar deletion failed. The asset might be orphan"
         );
       if (coverImage?.public_id) {
         const coverImageDeletion = await deleteFile(coverImage.public_id);
         if (!coverImageDeletion || coverImageDeletion.result !== "ok")
           throw new ApiError(
-            500,
+            502,
+            "STORAGE_SERVICE_UNAVAILABLE",
             "Cover Image deletion failed. The asset might be orphan"
           );
       }
@@ -157,6 +178,7 @@ const registerUser = asyncHandler(
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         500,
+        "INTERNAL_SERVER_ERROR",
         error?.message || "Database registration failed. Assets cleared.",
         error?.errors || []
       );
@@ -170,12 +192,13 @@ const loginUser = asyncHandler(
     const user = await User.findOne({ email });
 
     if (!user) {
-      throw new ApiError(404, "User does not exist!");
+      throw new ApiError(404, "USER_NOT_FOUND", "User does not exist!");
     }
 
     if (password.length < 8 || password.length > 16) {
       throw new ApiError(
         400,
+        "INVALID_PASSWORD",
         "Password cannot be shorter than 8 or longer than 16 characters."
       );
     }
@@ -183,7 +206,7 @@ const loginUser = asyncHandler(
     const isPasswordValid = await user.isPasswordCorrect(password);
 
     if (!isPasswordValid) {
-      throw new ApiError(401, "Invalid password !");
+      throw new ApiError(400, "INVALID_PASSWORD", "Password did not match.");
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(

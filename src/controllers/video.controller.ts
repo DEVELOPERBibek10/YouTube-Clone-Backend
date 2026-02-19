@@ -80,8 +80,8 @@ const uploadVideo = asyncHandler(
 
     if (!thumbnail || !thumbnail.public_id) {
       throw new ApiError(
-        500,
-        "INTERNAL_SERVER_ERROR",
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
         "Thumbnail uploading failed"
       );
     }
