@@ -10,9 +10,7 @@ const getVectorEmbedding = async (searchQuery: string) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        input: `Represent this sentence for searching relevant passages: ${searchQuery}`,
-        model: "mixedbread-ai/mxbai-embed-large-v1",
-        normalized: true,
+        input: `${searchQuery}`,
       }),
     });
 
@@ -21,7 +19,7 @@ const getVectorEmbedding = async (searchQuery: string) => {
         `Failed to get embedding. Status Code: ${response.status}`
       );
     }
-    return response.data.data[0].embedding;
+    return response.data;
   } catch (error) {
     throw error;
   }
