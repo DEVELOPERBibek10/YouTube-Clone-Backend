@@ -105,7 +105,7 @@ const uploadVideo = asyncHandler(
 
       const createdVideo = await Video.exists({ _id: video._id });
 
-      if (!createdVideo?._id) throw new ApiError(500, "Error uploading video");
+      if (!createdVideo) throw new ApiError(500, "Error uploading video");
 
       return res
         .status(201)
