@@ -63,7 +63,7 @@ const registerUser = asyncHandler(
         (feild) => feild?.trim() === ""
       )
     ) {
-      throw new ApiError(400, "Field is required");
+      throw new ApiError(400, "MISSING_REQUIRED_FIELDS", "Field is required");
     }
 
     if (password.length < 8 || password.length > 16) {
@@ -159,7 +159,7 @@ const registerUser = asyncHandler(
         );
     } catch (error: any) {
       const avatarDeletion = await deleteFile(avatar.public_id);
-      if (!avatarDeletion || avatarDeletion.result !== "ok")
+      if (!avatarDeletion)
         throw new ApiError(
           502,
           "STORAGE_SERVICE_UNAVAILABLE",
@@ -167,7 +167,7 @@ const registerUser = asyncHandler(
         );
       if (coverImage?.public_id) {
         const coverImageDeletion = await deleteFile(coverImage.public_id);
-        if (!coverImageDeletion || coverImageDeletion.result !== "ok")
+        if (!coverImageDeletion)
           throw new ApiError(
             502,
             "STORAGE_SERVICE_UNAVAILABLE",

@@ -54,10 +54,27 @@ const deleteFile = async (publicId: string, resourceType: string = "image") => {
     const response = (await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     })) as any;
+
+    if (response.result === "not found") {
+      throw new ApiError(
+        404,
+        "RES_NOT_FOUND",
+        "Media asset not found on storage provider."
+      );
+    }
+
+    if (response.error) {
+      throw new ApiError(502, "EXT_STORAGE_ERROR", response.error.message);
+    }
     return response;
   } catch (error) {
-    console.error("System Error during Cloudinary deletion:", error);
-    return null;
+    if (error instanceof ApiError) throw error;
+
+    throw new ApiError(
+      502,
+      "EXT_SERVICE_UNREACHABLE",
+      "Could not connect to Cloudinary."
+    );
   }
 };
 

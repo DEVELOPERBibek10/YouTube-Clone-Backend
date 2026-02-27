@@ -114,7 +114,8 @@ const uploadVideo = asyncHandler(
       const thumbnailDeletion = await deleteFile(thumbnail.public_id);
       if (!thumbnailDeletion) {
         throw new ApiError(
-          500,
+          502,
+          "STORAGE_SERVICE_UNAVAILABLE",
           "Thumbnail deletion failed. The asset might be orphan"
         );
       }
@@ -124,16 +125,16 @@ const uploadVideo = asyncHandler(
       const videoDeletion = await deleteFile(videoPublicId, "video");
       if (!videoDeletion)
         throw new ApiError(
-          500,
+          502,
+          "STORAGE_SERVICE_UNAVAILABLE",
           "Video deletion failed. The asset might be orphan"
         );
-      if (videoDeletion.result !== "ok") {
-        throw new ApiError(404, "Failed to locate the video on cloud.");
-      }
+
       console.error("Database Registration Error:", error);
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         500,
+        "INTERNAL_SERVER_ERROR",
         error?.message || "Database registration failed. Assets cleared.",
         error?.errors || []
       );
@@ -150,18 +151,27 @@ const updateVideoDetails = asyncHandler(
     const { videoId } = req.params;
     const updateData: any = {};
 
-    if (!videoId) throw new ApiError(400, "Video id is required");
+    if (!videoId)
+      throw new ApiError(400, "MISSING_REQUIRED_FIELD", "Video id is required");
     if (title !== undefined) {
       const trimmedTitle = title.trim();
       if (!trimmedTitle) {
-        throw new ApiError(400, "Title cannot be empty");
+        throw new ApiError(
+          400,
+          "MISSING_REQUIRED_FIELD",
+          "Title cannot be empty"
+        );
       }
       updateData.title = trimmedTitle;
     }
     if (description !== undefined) updateData.description = description.trim();
 
     if (Object.keys(updateData).length === 0) {
-      throw new ApiError(400, "Provide at least one field to update");
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELD",
+        "Provide at least one field to update"
+      );
     }
 
     const updatedVideoDetail = await Video.findOneAndUpdate(
@@ -173,7 +183,11 @@ const updateVideoDetails = asyncHandler(
     );
 
     if (!updatedVideoDetail || !updatedVideoDetail._id) {
-      throw new ApiError(404, "Video not found or unauthorized");
+      throw new ApiError(
+        404,
+        "VIDEO_NOT_FOUND",
+        "Video not found or unauthorized"
+      );
     }
 
     return res
@@ -190,12 +204,17 @@ const updateThumbnail = asyncHandler(
     res: Response
   ) => {
     const { videoId } = req.params;
-    if (!videoId) throw new ApiError(400, "Video id is required");
+    if (!videoId)
+      throw new ApiError(400, "MISSING_REQUIRED_FIELD", "Video id is required");
 
     const thumbnailLocalPath = req.file?.path;
 
     if (!thumbnailLocalPath) {
-      throw new ApiError(400, "Thumbnial is a required field");
+      throw new ApiError(
+        400,
+        "MISSING_REQUIRED_FIELD",
+        "Thumbnial is a required field"
+      );
     }
 
     const video = await Video.findById(videoId)
@@ -205,6 +224,7 @@ const updateThumbnail = asyncHandler(
     if (!video?.thumbnail?.publicId) {
       throw new ApiError(
         404,
+        "THUMBNAIL_NOT_FOUND",
         "Thumbnail not found to update or already deleted"
       );
     }
@@ -215,7 +235,11 @@ const updateThumbnail = asyncHandler(
     );
 
     if (!thumbnail || !thumbnail.url) {
-      throw new ApiError(500, "Failed to upload thumbnail");
+      throw new ApiError(
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
+        "Failed to upload thumbnail"
+      );
     }
 
     const updatedVideo = await Video.findOneAndUpdate(
@@ -233,7 +257,11 @@ const updateThumbnail = asyncHandler(
     );
 
     if (!updatedVideo) {
-      throw new ApiError(404, "Video not found or unauthorized");
+      throw new ApiError(
+        404,
+        "VIDEO_NOT_FOUND",
+        "Video not found or unauthorized"
+      );
     }
 
     return res
@@ -258,33 +286,12 @@ const deleteVideo = asyncHandler(
     });
 
     if (!video) {
-      throw new ApiError(404, "Video not found or unauthorized");
+      throw new ApiError(404, "VIDEO_NOT_FOUND", "Video not found");
     }
 
-    const deleteThumbnailOnCloudinary = await deleteFile(
-      video.thumbnail.publicId
-    );
+    await deleteFile(video.thumbnail.publicId);
 
-    if (!deleteThumbnailOnCloudinary) {
-      throw new ApiError(500, "Error while deteting the thumbnail");
-    }
-
-    if (deleteThumbnailOnCloudinary.result !== "ok") {
-      throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
-    }
-
-    const deleteVideoOnCloudinary = await deleteFile(
-      video.videoFile.publicId,
-      "video"
-    );
-
-    if (!deleteVideoOnCloudinary) {
-      throw new ApiError(500, "Error while deteting the thumbnail");
-    }
-
-    if (deleteVideoOnCloudinary.result !== "ok") {
-      throw new ApiError(404, "Failed to locate the video on cloud.");
-    }
+    await deleteFile(video.videoFile.publicId, "video");
 
     return res
       .status(200)
