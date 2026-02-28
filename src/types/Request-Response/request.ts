@@ -1,17 +1,18 @@
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
-import type { Types } from "mongoose";
 import type { UserResponse } from "./response.js";
 
 export interface TypedRequest<
   TBody = any,
   TFiles = any,
   TParams = ParamsDictionary,
-> extends Omit<Request, "body" | "files" | "params" | "user"> {
+> extends Omit<Request, "body" | "files" | "params"> {
   body: TBody;
   params: TParams;
   files?: TFiles;
 }
+
+interface UserRequest extends UserResponse {}
 
 export interface AuthTypedRequest<
   TBody = any,
@@ -20,34 +21,6 @@ export interface AuthTypedRequest<
 > extends Omit<Request, "body" | "files" | "params"> {
   body: TBody;
   params: TParams;
+  user: UserRequest;
   files?: TFile | undefined;
-}
-
-export interface UserRequest extends UserResponse {}
-
-export interface RegisterUserBody {
-  fullName: string;
-  email: string;
-  username: string;
-  password: string;
-}
-
-export interface LoginUserBody {
-  email: string;
-  password: string;
-}
-
-export interface VideoRequestBody {
-  title: string;
-  description: string;
-  owner: string;
-  isPublished: boolean;
-  videoUrl: string;
-  videoPublicId: string;
-  duration: number;
-}
-
-export interface UpdateVideoDetailsBody {
-  title: string;
-  description: string;
 }

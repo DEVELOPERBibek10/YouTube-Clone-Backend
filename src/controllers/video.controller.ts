@@ -3,11 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { type Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
-import type {
-  AuthTypedRequest,
-  UpdateVideoDetailsBody,
-  VideoRequestBody,
-} from "../types/Request-Response/request.js";
+import type { AuthTypedRequest } from "../types/Request-Response/request.js";
 import { Video } from "../models/video.model.js";
 import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import mongoose from "mongoose";
@@ -15,6 +11,11 @@ import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import getVectorEmbedding from "../utils/vectorEmbedding.js";
+import type {
+  UpdateVideoParmasSchema,
+  UpdateVideoSchema,
+  VideoSchema,
+} from "../validators/video.validator.js";
 
 const getVideoSignature = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
@@ -51,7 +52,7 @@ const getVideoSignature = asyncHandler(
 );
 
 const uploadVideo = asyncHandler(
-  async (req: AuthTypedRequest<VideoRequestBody>, res: Response) => {
+  async (req: AuthTypedRequest<VideoSchema>, res: Response) => {
     const {
       title,
       description,
@@ -90,7 +91,7 @@ const uploadVideo = asyncHandler(
       const video = await Video.create({
         title,
         description,
-        owner: req.user!._id,
+        owner: req.user._id,
         isPublished,
         videoFile: {
           url: videoUrl,
@@ -105,8 +106,13 @@ const uploadVideo = asyncHandler(
 
       const createdVideo = await Video.exists({ _id: video._id });
 
-      if (!createdVideo) throw new ApiError(500, "Error uploading video");
-
+      if (!createdVideo) {
+        throw new ApiError(
+          500,
+          "INTERNAL_SERVER_ERROR",
+          "Error uploading video"
+        );
+      }
       return res
         .status(201)
         .json(new ApiResponse(201, video, "Video uploaded Sucessfully."));
@@ -144,38 +150,20 @@ const uploadVideo = asyncHandler(
 
 const updateVideoDetails = asyncHandler(
   async (
-    req: AuthTypedRequest<UpdateVideoDetailsBody, null, { videoId: string }>,
+    req: AuthTypedRequest<UpdateVideoSchema, null, UpdateVideoParmasSchema>,
     res: Response
   ) => {
     const { title, description } = req.body;
     const { videoId } = req.params;
     const updateData: any = {};
 
-    if (!videoId)
-      throw new ApiError(400, "MISSING_REQUIRED_FIELD", "Video id is required");
     if (title !== undefined) {
-      const trimmedTitle = title.trim();
-      if (!trimmedTitle) {
-        throw new ApiError(
-          400,
-          "MISSING_REQUIRED_FIELD",
-          "Title cannot be empty"
-        );
-      }
-      updateData.title = trimmedTitle;
+      updateData.title = title;
     }
     if (description !== undefined) updateData.description = description.trim();
 
-    if (Object.keys(updateData).length === 0) {
-      throw new ApiError(
-        400,
-        "MISSING_REQUIRED_FIELD",
-        "Provide at least one field to update"
-      );
-    }
-
     const updatedVideoDetail = await Video.findOneAndUpdate(
-      { _id: videoId, owner: req.user?._id },
+      { _id: videoId, owner: req.user._id },
       {
         $set: updateData,
       },
@@ -183,11 +171,7 @@ const updateVideoDetails = asyncHandler(
     );
 
     if (!updatedVideoDetail || !updatedVideoDetail._id) {
-      throw new ApiError(
-        404,
-        "VIDEO_NOT_FOUND",
-        "Video not found or unauthorized"
-      );
+      throw new ApiError(404, "NOT_FOUND", "Video not found or unauthorized");
     }
 
     return res
@@ -200,7 +184,7 @@ const updateVideoDetails = asyncHandler(
 
 const updateThumbnail = asyncHandler(
   async (
-    req: AuthTypedRequest<null, any, { videoId: string }>,
+    req: AuthTypedRequest<null, any, UpdateVideoParmasSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
@@ -257,11 +241,7 @@ const updateThumbnail = asyncHandler(
     );
 
     if (!updatedVideo) {
-      throw new ApiError(
-        404,
-        "VIDEO_NOT_FOUND",
-        "Video not found or unauthorized"
-      );
+      throw new ApiError(404, "NOT_FOUND", "Video not found or unauthorized");
     }
 
     return res
@@ -274,11 +254,10 @@ const updateThumbnail = asyncHandler(
 
 const deleteVideo = asyncHandler(
   async (
-    req: AuthTypedRequest<null, null, { videoId: string }>,
+    req: AuthTypedRequest<null, null, UpdateVideoParmasSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
-    if (!videoId) throw new ApiError(400, "Video id is required");
 
     const video = await Video.findOneAndDelete({
       _id: videoId,
@@ -301,15 +280,10 @@ const deleteVideo = asyncHandler(
 
 export const getVideo = asyncHandler(
   async (
-    req: AuthTypedRequest<null, null, { videoId: string }>,
+    req: AuthTypedRequest<null, null, UpdateVideoParmasSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
-    if (!videoId) throw new ApiError(400, "Video id is required");
-
-    if (!mongoose.Types.ObjectId.isValid(videoId)) {
-      throw new ApiError(400, "Malformed video id!");
-    }
 
     const videoResult = await Video.aggregate([
       { $match: { _id: new mongoose.Types.ObjectId(videoId) } },
@@ -346,7 +320,7 @@ export const getVideo = asyncHandler(
       },
     ]);
 
-    if (!videoResult) throw new ApiError(404, "Video not found");
+    if (!videoResult) throw new ApiError(404, "NOT_FOUND", "Video not found");
 
     const video = videoResult[0];
 
@@ -458,7 +432,8 @@ export const getAllVideos = asyncHandler(
 
     const result = await Video.aggregate(pipeline);
 
-    if (!result) throw new ApiError(404, "No videos found or unauthorized");
+    if (!result)
+      throw new ApiError(404, "NOT_FOUND", "No videos found or unauthorized");
 
     const videos = result[0].videos;
     const totalVideos = result[0].totalCount[0]?.count || 0;

@@ -19,10 +19,10 @@ export interface IUser {
   updatedAt: Date;
 }
 
-export interface IUserDocument extends IUser, IUserMethods, Document {}
-
 export interface IUserMethods {
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): string;
   generateRefreshToken(): string;
 }
+
+export interface IUserDocument extends IUser, IUserMethods, Document {}

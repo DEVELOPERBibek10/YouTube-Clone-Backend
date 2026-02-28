@@ -30,7 +30,7 @@ export const verifyJWT = asyncHandler(
       const user = await User.findById(decodedToken._id).select("-password");
 
       if (!user) {
-        throw new ApiError(404, "User not found!");
+        throw new ApiError(404, "NOT_FOUND", "User not found!");
       }
 
       req.user = user;
@@ -48,7 +48,9 @@ export const verifyJWT = asyncHandler(
           new ApiError(401, "INVALID_ACCESS_TOKEN", "Invalid access token")
         );
       }
-      return next(new ApiError(500, "INTERNAL_ERROR", "Internal Server Error"));
+      return next(
+        new ApiError(500, "INTERNAL_SERVER_ERROR", "Internal Server Error")
+      );
     }
   }
 );

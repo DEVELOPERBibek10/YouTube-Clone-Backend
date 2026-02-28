@@ -5,7 +5,6 @@ import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
-import type { IUserDocument } from "../types/Model/User.js";
 
 import type {
   UserResponse,
@@ -15,17 +14,22 @@ import type {
 import type {
   AuthTypedRequest,
   TypedRequest,
-  LoginUserBody,
-  RegisterUserBody,
 } from "../types/Request-Response/request.js";
 import type { Response, CookieOptions } from "express";
 import type { DecodedToken } from "../middlewares/auth.middleware.js";
+import type {
+  RegisterUserSchema,
+  LoginUserSchema,
+  UserParamSchema,
+  ChangePasswordSchema,
+  UpdateUserSchema,
+} from "../validators/user.validator.js";
 
 const generateAccessAndRefreshToken = async (
   userId: string | Types.ObjectId
 ) => {
   try {
-    const user: IUserDocument | null = await User.findById(userId);
+    const user = await User.findById(userId);
     if (!user) throw new Error("Unable to find the user");
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
@@ -35,14 +39,19 @@ const generateAccessAndRefreshToken = async (
 
     return { accessToken, refreshToken };
   } catch (error) {
-    if (error instanceof Error)
+    if (error instanceof Error) {
       throw new ApiError(404, "USER_NOT_FOUND", error.message);
-    throw new ApiError(500, "Unable to generate refresh and access token !");
+    }
+    throw new ApiError(
+      500,
+      "INTERNAL_SERVER_ERROR",
+      "Unable to generate refresh and access token !"
+    );
   }
 };
 
 const registerUser = asyncHandler(
-  async (req: TypedRequest<RegisterUserBody>, res: Response) => {
+  async (req: TypedRequest<RegisterUserSchema>, res: Response) => {
     // Get the user details from frontend.
     // Validation - empty, email format.
     // check if user already exists.
@@ -56,27 +65,6 @@ const registerUser = asyncHandler(
     let coverImage = null;
 
     const { fullName, email, username, password } = req.body;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    if (
-      [fullName, email, username, password].some(
-        (feild) => feild?.trim() === ""
-      )
-    ) {
-      throw new ApiError(400, "MISSING_REQUIRED_FIELDS", "Field is required");
-    }
-
-    if (password.length < 8 || password.length > 16) {
-      throw new ApiError(
-        400,
-        "INVALID_PASSWORD",
-        "Password cannot be shorter than 8 or longer than 16 characters."
-      );
-    }
-
-    if (!emailRegex.test(email.toLowerCase())) {
-      throw new ApiError(400, "INVALID_EMAIL_FORMAT", "Invalid email format");
-    }
 
     const existingUser = await User.findOne({
       $or: [{ username: username }, { email: email }],
@@ -85,7 +73,7 @@ const registerUser = asyncHandler(
     if (existingUser) {
       throw new ApiError(
         409,
-        "USER_ALREADY_EXISTS",
+        "ALREADY_EXISTS",
         "A user with this email or username already exists."
       );
     }
@@ -187,20 +175,12 @@ const registerUser = asyncHandler(
 );
 
 const loginUser = asyncHandler(
-  async (req: TypedRequest<LoginUserBody>, res: Response) => {
+  async (req: TypedRequest<LoginUserSchema>, res: Response) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) {
       throw new ApiError(404, "USER_NOT_FOUND", "User does not exist!");
-    }
-
-    if (password.length < 8 || password.length > 16) {
-      throw new ApiError(
-        400,
-        "INVALID_PASSWORD",
-        "Password cannot be shorter than 8 or longer than 16 characters."
-      );
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password);
@@ -288,7 +268,7 @@ const refreshAccessToken = asyncHandler(
       const user = await User.findById(decodedToken._id);
 
       if (!user) {
-        throw new ApiError(404, "User not found");
+        throw new ApiError(404, "NOT_FOUND", "User not found");
       }
       if (incomingRefreshToken !== user.refreshToken) {
         throw new ApiError(
@@ -338,7 +318,7 @@ const getCurrentUser = asyncHandler(
       coverImage,
       createdAt,
       updatedAt,
-    } = req.user!;
+    } = req.user;
 
     return res.status(200).json(
       new ApiResponse<UserResponse>(
@@ -360,27 +340,17 @@ const getCurrentUser = asyncHandler(
 );
 
 const changeCurrentPassword = asyncHandler(
-  async (
-    req: AuthTypedRequest<{ oldPassword: string; newPassword: string }>,
-    res: Response
-  ) => {
+  async (req: AuthTypedRequest<ChangePasswordSchema>, res: Response) => {
     const { oldPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user?._id);
+    const user = await User.findById(req.user._id);
 
     if (!user) throw new ApiError(404, "NOT_FOUND", "User doesn't exist.");
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
-    if (!isPasswordCorrect)
+    if (!isPasswordCorrect) {
       throw new ApiError(400, "INVALID_OLD_PASSWORD", "Invalid old password");
-
-    if (newPassword.length < 8 || newPassword.length > 16) {
-      throw new ApiError(
-        400,
-        "PASSWORD_TOO_SHORT",
-        "Password cannot be shorter than 8 or longer than 16 characters."
-      );
     }
 
     user.password = newPassword;
@@ -401,19 +371,11 @@ const changeCurrentPassword = asyncHandler(
 );
 
 const updateDetails = asyncHandler(
-  async (req: AuthTypedRequest<{ username: string }>, res: Response) => {
+  async (req: AuthTypedRequest<UpdateUserSchema>, res: Response) => {
     const { username } = req.body;
 
-    if (!username.trim()) {
-      throw new ApiError(
-        400,
-        "MISSING_REQUIRED_FIELDS",
-        "All fields are required"
-      );
-    }
-
     const user = await User.findByIdAndUpdate(
-      req.user?._id,
+      req.user._id,
       {
         $set: {
           username,
@@ -442,12 +404,13 @@ const updateAvatar = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
     const avatarLocalFile = req.file?.path;
 
-    if (!avatarLocalFile)
+    if (!avatarLocalFile) {
       throw new ApiError(
         400,
         "MISSING_REQUIRED_FIELD",
         "Avatar image is required."
       );
+    }
 
     const user = await User.findById(req.user?._id).select(
       "+avatar.publicId -password -watchHistory"
@@ -459,14 +422,14 @@ const updateAvatar = asyncHandler(
 
     if (!avatar || !avatar.url) {
       throw new ApiError(
-        500,
-        "INTERNAL_SERVER_ERROR",
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
         "Error while updating avatar image"
       );
     }
 
     const updatedUser = await User.findByIdAndUpdate(
-      req.user?._id,
+      req.user._id,
       {
         $set: {
           "avatar.url": avatar.url,
@@ -476,8 +439,9 @@ const updateAvatar = asyncHandler(
       { new: true }
     ).select("-password -watchHistory");
 
-    if (!updatedUser)
-      throw new ApiError(404, "RES_NOT_FOUND", "User not found");
+    if (!updatedUser) {
+      throw new ApiError(404, "NOT_FOUND", "User not found");
+    }
 
     return res
       .status(200)
@@ -502,7 +466,7 @@ const updateCoverImage = asyncHandler(
       "+coverImage.publicId -password"
     );
 
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, "NOT_FOUND", "User not found");
 
     const coverImage = await uploadFile(
       coverImageLocalFile,
@@ -510,7 +474,11 @@ const updateCoverImage = asyncHandler(
     );
 
     if (!coverImage || !coverImage.url) {
-      throw new ApiError(500, "Error while uploading cover image");
+      throw new ApiError(
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
+        "Error while uploading cover image"
+      );
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -524,7 +492,7 @@ const updateCoverImage = asyncHandler(
       { new: true }
     ).select("-password -watchHistory");
 
-    if (!updatedUser) throw new ApiError(404, "User not found");
+    if (!updatedUser) throw new ApiError(404, "NOT_FOUND", "User not found");
 
     return res
       .status(200)
@@ -539,18 +507,12 @@ const updateCoverImage = asyncHandler(
 );
 
 const getUserChannelProfile = asyncHandler(
-  async (
-    req: AuthTypedRequest<null, null, { username: string }>,
-    res: Response
-  ) => {
+  async (req: AuthTypedRequest<null, null, UserParamSchema>, res: Response) => {
     const { username } = req.params;
-
-    if (!username?.trim())
-      throw new ApiError(400, "PARAMS_MISSING", "Username is required");
 
     const channel = await User.aggregate([
       {
-        $match: { username: username?.toLowerCase() },
+        $match: { username: username.toLowerCase() },
       },
       {
         $lookup: {
@@ -610,8 +572,9 @@ const getUserChannelProfile = asyncHandler(
       },
     ]);
 
-    if (!channel?.length)
-      throw new ApiError(404, "RES_NOT_FOUND", "Channel does not exist!");
+    if (!channel?.length) {
+      throw new ApiError(404, "NOT_FOUND", "Channel does not exist!");
+    }
 
     return res
       .status(200)
@@ -629,7 +592,7 @@ const getWatchHistory = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
     const user = await User.aggregate([
       {
-        $match: { _id: new mongoose.Types.ObjectId(req.user!._id) },
+        $match: { _id: new mongoose.Types.ObjectId(req.user._id) },
       },
       {
         $lookup: {
@@ -671,7 +634,7 @@ const getWatchHistory = asyncHandler(
     if (!user.length || !user[0]?.watchHistory) {
       throw new ApiError(
         404,
-        "RES_NOT_FOUND",
+        "NOT_FOUND",
         "Watch history could not be found for this user."
       );
     }
