@@ -62,12 +62,6 @@ const uploadVideo = asyncHandler(
       duration,
     } = req.body;
 
-    if (!videoUrl || !videoPublicId)
-      throw new ApiError(
-        400,
-        "MISSING_REQUIRED_FIELDS",
-        "Video Url and publicId are required"
-      );
     const thumbnailLocalPath = req.file?.path;
 
     if (!thumbnailLocalPath)
