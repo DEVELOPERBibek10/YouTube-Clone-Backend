@@ -73,11 +73,11 @@ const uploadVideo = asyncHandler(
 
     const thumbnail = await uploadFile(thumbnailLocalPath);
 
-    if (!thumbnail || !thumbnail.public_id) {
+    if (thumbnail instanceof ApiError) {
       throw new ApiError(
-        502,
-        "STORAGE_SERVICE_UNAVAILABLE",
-        "Thumbnail uploading failed"
+        thumbnail.statusCode,
+        thumbnail.code,
+        thumbnail.message
       );
     }
 
@@ -112,25 +112,21 @@ const uploadVideo = asyncHandler(
         .json(new ApiResponse(201, video, "Video uploaded Sucessfully."));
     } catch (error: any) {
       const thumbnailDeletion = await deleteFile(thumbnail.public_id);
-      if (!thumbnailDeletion) {
+      if (thumbnailDeletion instanceof ApiError) {
         throw new ApiError(
-          502,
-          "STORAGE_SERVICE_UNAVAILABLE",
-          "Thumbnail deletion failed. The asset might be orphan"
+          thumbnailDeletion.statusCode,
+          thumbnailDeletion.code,
+          thumbnailDeletion.message
         );
-      }
-      if (thumbnailDeletion.result !== "ok") {
-        throw new ApiError(404, "Failed to locate the thumbnail on cloud.");
       }
       const videoDeletion = await deleteFile(videoPublicId, "video");
-      if (!videoDeletion)
+      if (videoDeletion instanceof ApiError)
         throw new ApiError(
-          502,
-          "STORAGE_SERVICE_UNAVAILABLE",
-          "Video deletion failed. The asset might be orphan"
+          videoDeletion.statusCode,
+          videoDeletion.code,
+          videoDeletion.message
         );
 
-      console.error("Database Registration Error:", error);
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         500,
@@ -154,7 +150,7 @@ const updateVideoDetails = asyncHandler(
     if (title !== undefined) {
       updateData.title = title;
     }
-    if (description !== undefined) updateData.description = description.trim();
+    if (description !== undefined) updateData.description = description;
 
     const updatedVideoDetail = await Video.findOneAndUpdate(
       { _id: videoId, owner: req.user._id },
@@ -199,7 +195,7 @@ const updateThumbnail = asyncHandler(
       .select("thumbnail.publicId thumbnail.url")
       .lean();
 
-    if (!video?.thumbnail?.publicId) {
+    if (!video?.thumbnail) {
       throw new ApiError(
         404,
         "THUMBNAIL_NOT_FOUND",
@@ -212,11 +208,11 @@ const updateThumbnail = asyncHandler(
       video.thumbnail.publicId
     );
 
-    if (!thumbnail || !thumbnail.url) {
+    if (thumbnail instanceof ApiError) {
       throw new ApiError(
-        502,
-        "STORAGE_SERVICE_UNAVAILABLE",
-        "Failed to upload thumbnail"
+        thumbnail.statusCode,
+        thumbnail.code,
+        thumbnail.message
       );
     }
 
@@ -253,18 +249,39 @@ const deleteVideo = asyncHandler(
   ) => {
     const { videoId } = req.params;
 
-    const video = await Video.findOneAndDelete({
+    const video = await Video.findById({
       _id: videoId,
-      owner: req.user!._id,
+      owner: req.user._id,
     });
 
     if (!video) {
-      throw new ApiError(404, "VIDEO_NOT_FOUND", "Video not found");
+      throw new ApiError(404, "NOT_FOUND", "Video not found");
     }
 
-    await deleteFile(video.thumbnail.publicId);
+    const deleteThumbnail = await deleteFile(video.thumbnail.publicId);
 
-    await deleteFile(video.videoFile.publicId, "video");
+    if (deleteThumbnail instanceof ApiError) {
+      throw new ApiError(
+        deleteThumbnail.statusCode,
+        deleteThumbnail.code,
+        deleteThumbnail.message
+      );
+    }
+
+    const deleteVideo = await deleteFile(video.videoFile.publicId, "video");
+
+    if (deleteVideo instanceof ApiError) {
+      throw new ApiError(
+        deleteVideo.statusCode,
+        deleteVideo.code,
+        deleteVideo.message
+      );
+    }
+
+    await Video.findOneAndDelete({
+      _id: videoId,
+      owner: req.user._id,
+    });
 
     return res
       .status(200)
@@ -370,9 +387,18 @@ export const getAllVideos = asyncHandler(
     const limitNumber = parseInt(limit as string);
     const skip = (pageNumber - 1) * limitNumber;
     const pipeline: any[] = [];
-    const queryVector = await getVectorEmbedding(searchText as string);
 
     if (searchText) {
+      const queryVector = await getVectorEmbedding(searchText as string);
+
+      if (queryVector instanceof ApiError) {
+        throw new ApiError(
+          queryVector.statusCode,
+          queryVector.code,
+          queryVector.message
+        );
+      }
+
       pipeline.push(
         { $match: { isPublished: true } },
         {

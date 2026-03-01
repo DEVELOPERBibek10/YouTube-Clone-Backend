@@ -16,12 +16,11 @@ cloudinary.config({
 const uploadFile = async (
   localFilePath: string,
   publicId: string | null = null
-): Promise<UploadApiResponse | null> => {
+): Promise<UploadApiResponse> => {
   const options: UploadApiOptions = {
     invalidate: true,
     secure: true,
     resource_type: "image",
-    public_id: "",
     overwrite: false,
   };
 
@@ -30,14 +29,65 @@ const uploadFile = async (
     options.overwrite = true;
   }
 
+  if (!localFilePath) {
+    console.error("CLOUDINARY ERROR: Local file path is required");
+    throw new ApiError(
+      400,
+      "MISSING_FILE_PATH",
+      "File path is required for upload"
+    );
+  }
   try {
-    if (!localFilePath) return null;
     const response = await cloudinary.uploader.upload(localFilePath, options);
-    return response;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
+
+    if (!response || !response.public_id) {
+      throw new ApiError(
+        500,
+        "STORAGE_LOGIC_ERROR",
+        "Cloudinary upload failed: Missing response data"
+      );
+    }
+
+    return response as UploadApiResponse;
+  } catch (error: any) {
     console.error("CLOUDINARY ERROR:", error);
-    return null;
+
+    if (error instanceof ApiError) throw error;
+    if (!error.http_code) {
+      throw new ApiError(
+        503,
+        "NETWORK_ERROR",
+        "Could not connect to Cloudinary. Check your network."
+      );
+    }
+
+    if (error.http_code === 401 || error.http_code === 403) {
+      throw new ApiError(
+        500,
+        "Cloudinary authentication failed. Check API keys.",
+        "AUTH_ERROR"
+      );
+    }
+
+    if (error.http_code === 400) {
+      throw new ApiError(
+        400,
+        `Cloudinary Upload Rejected: ${error.message}`,
+        "INVALID_UPLOAD_PARAMS"
+      );
+    }
+    if (error.http_code >= 500) {
+      throw new ApiError(
+        502,
+        "Cloudinary servers are experiencing issues.",
+        "EXT_STORAGE_DOWN"
+      );
+    }
+    throw new ApiError(
+      error.http_code || 500,
+      "INTERNAL_SERVER_ERROR",
+      error.message || "Unknown Upload Error"
+    );
   } finally {
     if (fs.existsSync(localFilePath)) {
       try {
@@ -53,27 +103,29 @@ const deleteFile = async (publicId: string, resourceType: string = "image") => {
   try {
     const response = (await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
+      invalidate: true,
     })) as any;
 
-    if (response.result === "not found") {
+    return response;
+  } catch (error: any) {
+    if (!error.http_code || error.http_code >= 500) {
       throw new ApiError(
-        404,
-        "RES_NOT_FOUND",
-        "Media asset not found on storage provider."
+        502,
+        "STORAGE_SERVICE_UNAVAILABLE",
+        "Cloudinary is unreachable. Deletion aborted."
       );
     }
-
-    if (response.error) {
-      throw new ApiError(502, "EXT_STORAGE_ERROR", response.error.message);
+    if (error.http_code === 400 || error.http_code === 401) {
+      throw new ApiError(
+        400,
+        "INVALID_DELETE_REQ",
+        `Cloudinary Delete Failed: ${error.message}`
+      );
     }
-    return response;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-
     throw new ApiError(
-      502,
-      "EXT_SERVICE_UNREACHABLE",
-      "Could not connect to Cloudinary."
+      500,
+      "INTERNAL_SERVER_ERROR",
+      error.message || "Unknown Deletion Error"
     );
   }
 };

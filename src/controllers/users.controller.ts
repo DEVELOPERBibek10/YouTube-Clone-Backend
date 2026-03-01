@@ -99,22 +99,22 @@ const registerUser = asyncHandler(
 
     avatar = await uploadFile(avatarLocalPath);
 
-    if (!avatar?.public_id)
-      throw new ApiError(
-        502,
-        "STORAGE_SERVICE_UNAVAILABLE",
-        "Error while uploading the avatar"
-      );
+    if (avatar instanceof ApiError) {
+      throw new ApiError(avatar.statusCode, avatar.code, avatar.message);
+    }
 
     if (coverImageLocalPath) {
       coverImage = await uploadFile(coverImageLocalPath);
+      if (coverImage instanceof ApiError) {
+        throw new ApiError(avatar.statusCode, avatar.code, avatar.message);
+      }
     }
     try {
       const user = await User.create({
         fullName,
         avatar: {
-          url: avatar!.url,
-          publicId: avatar!.public_id,
+          url: avatar.url,
+          publicId: avatar.public_id,
         },
         coverImage: {
           url: coverImage?.url || "",
@@ -155,7 +155,7 @@ const registerUser = asyncHandler(
         );
       if (coverImage?.public_id) {
         const coverImageDeletion = await deleteFile(coverImage.public_id);
-        if (!coverImageDeletion)
+        if (coverImageDeletion instanceof ApiError)
           throw new ApiError(
             502,
             "STORAGE_SERVICE_UNAVAILABLE",
@@ -420,12 +420,8 @@ const updateAvatar = asyncHandler(
 
     const avatar = await uploadFile(avatarLocalFile, user.avatar.publicId);
 
-    if (!avatar || !avatar.url) {
-      throw new ApiError(
-        502,
-        "STORAGE_SERVICE_UNAVAILABLE",
-        "Error while updating avatar image"
-      );
+    if (avatar instanceof ApiError) {
+      throw new ApiError(avatar.statusCode, avatar.code, avatar.message);
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -473,11 +469,11 @@ const updateCoverImage = asyncHandler(
       user.coverImage!.publicId
     );
 
-    if (!coverImage || !coverImage.url) {
+    if (coverImage instanceof ApiError) {
       throw new ApiError(
-        502,
-        "STORAGE_SERVICE_UNAVAILABLE",
-        "Error while uploading cover image"
+        coverImage.statusCode,
+        coverImage.code,
+        coverImage.message
       );
     }
 

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import axios from "axios";
+import { ApiError } from "./ApiError.js";
 
 const getVectorEmbedding = async (searchQuery: string) => {
   try {
@@ -15,8 +16,10 @@ const getVectorEmbedding = async (searchQuery: string) => {
     });
 
     if (response.status !== 200) {
-      throw new Error(
-        `Failed to get embedding. Status Code: ${response.status}`
+      throw new ApiError(
+        response.status,
+        "AI_SERVICE_ERROR",
+        "Unknown error occured in AI service"
       );
     }
     return response.data;
