@@ -195,11 +195,11 @@ const updateThumbnail = asyncHandler(
       .select("thumbnail.publicId thumbnail.url")
       .lean();
 
-    if (!video?.thumbnail) {
+    if (!video?.thumbnail?.publicId || !video?.thumbnail?.url) {
       throw new ApiError(
         404,
         "THUMBNAIL_NOT_FOUND",
-        "Thumbnail not found to update or already deleted"
+        "Thumbnail not found to update"
       );
     }
 
