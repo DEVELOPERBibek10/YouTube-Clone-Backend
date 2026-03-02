@@ -25,7 +25,6 @@ import {
 const userRouter = Router();
 
 userRouter.route("/register").post(
-  validation(registerSchema),
   upload.fields([
     {
       name: "avatar",
@@ -36,6 +35,7 @@ userRouter.route("/register").post(
       maxCount: 1,
     },
   ]),
+  validation(registerSchema),
   registerUser
 );
 
@@ -47,7 +47,7 @@ userRouter.route("/refresh-token").post(refreshAccessToken);
 userRouter.route("/current-user").get(verifyJWT, getCurrentUser);
 userRouter
   .route("/update-details")
-  .patch(validation(updateUserDetailSchema), verifyJWT, updateDetails);
+  .patch(verifyJWT, validation(updateUserDetailSchema), updateDetails);
 userRouter
   .route("/update-avatar")
   .patch(verifyJWT, upload.single("avatar"), updateAvatar);
@@ -56,7 +56,7 @@ userRouter
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
 userRouter
   .route("/profile/:username")
-  .get(validation(userParamSchema), verifyJWT, getUserChannelProfile);
+  .get(verifyJWT, validation(userParamSchema), getUserChannelProfile);
 userRouter.route("/watch-history").get(verifyJWT, getWatchHistory);
 
 export default userRouter;

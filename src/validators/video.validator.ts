@@ -30,11 +30,6 @@ export const videoRequestSchema = z.object({
 });
 
 export const updateVideoSchema = z.object({
-  params: z.object({
-    videoId: z.string().regex(/^[a-fA-F0-9]{24}$/, {
-      error: "Invalid Video Id format.",
-    }),
-  }),
   body: z
     .object({
       title: z
@@ -55,8 +50,16 @@ export const updateVideoSchema = z.object({
     }),
 });
 
+export const updateVideoParamsSchema = z.object({
+  params: z.object({
+    videoId: z.string().regex(/^[a-fA-F0-9]{24}$/, {
+      error: "Invalid Video Id format.",
+    }),
+  }),
+});
+
 export type VideoSchema = z.infer<typeof videoRequestSchema>["body"];
 export type UpdateVideoSchema = z.infer<typeof updateVideoSchema>["body"];
 export type UpdateVideoParmasSchema = z.infer<
-  typeof updateVideoSchema
+  typeof updateVideoParamsSchema
 >["params"];

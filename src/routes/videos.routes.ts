@@ -12,6 +12,7 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 import { validation } from "../middlewares/validation.middleware.js";
 import {
+  updateVideoParamsSchema,
   updateVideoSchema,
   videoRequestSchema,
 } from "../validators/video.validator.js";
@@ -22,18 +23,30 @@ videoRouter.route("/signature").get(verifyJWT, getVideoSignature);
 videoRouter
   .route("/upload")
   .post(
-    validation(videoRequestSchema),
     verifyJWT,
     upload.single("thumbnail"),
+    validation(videoRequestSchema),
     uploadVideo
   );
 videoRouter
   .route("/update-details/:videoId")
-  .patch(validation(updateVideoSchema), verifyJWT, updateVideoDetails);
+  .patch(
+    verifyJWT,
+    validation(updateVideoParamsSchema),
+    validation(updateVideoSchema),
+    updateVideoDetails
+  );
 videoRouter
   .route("/update-thumbnail/:videoId")
-  .patch(verifyJWT, upload.single("thumbnail"), updateThumbnail);
-videoRouter.route("/delete/:videoId").delete(verifyJWT, deleteVideo);
+  .patch(
+    verifyJWT,
+    validation(updateVideoParamsSchema),
+    upload.single("thumbnail"),
+    updateThumbnail
+  );
+videoRouter
+  .route("/delete/:videoId")
+  .delete(verifyJWT, validation(updateVideoParamsSchema), deleteVideo);
 videoRouter.route("").get(verifyJWT, getAllVideos);
 videoRouter.route("/search").get(verifyJWT, getSuggestions);
 
