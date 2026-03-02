@@ -3,44 +3,27 @@ import { z } from "zod";
 export const videoRequestSchema = z.object({
   body: z.object({
     title: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined
-            ? "Title is required"
-            : "Invalid title format",
-      })
+      .string()
       .trim()
-      .min(2, "Title must be at least 2 characters")
-      .max(100, "Title cannot exceed 100 characters"),
+      .min(2, { error: "Title must be at least 2 characters." })
+      .max(100, { error: "Title cannot exceed 100 characters." }),
 
     description: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined
-            ? "Description is required"
-            : "Invalid description",
-      })
+      .string()
       .trim()
-      .max(400, "Description cannot exceed 400 characters"),
+      .max(400, { error: "Description cannot exceed 400 characters" }),
 
-    videoUrl: z.url({
-      error: (iss) =>
-        iss.input === undefined ? "url is required" : "Invalid url",
-    }),
+    videoUrl: z.string().trim().min(1, { error: "Video url is required." }),
 
-    videoPublicId: z.string({
-      error: (iss) =>
-        iss.input === undefined ? "Public Id is required" : "Invalid pubicId",
-    }),
+    videoPublicId: z.string().min(1, { error: "Public Id is required." }),
 
-    duration: z.coerce.number().positive("Duration must be a positive number"),
+    duration: z.coerce
+      .number()
+      .positive({ error: "Duration must be a positive number." }),
 
     isPublished: z
       .enum(["true", "false"], {
-        error: (iss) =>
-          iss.input === undefined
-            ? "Publish status is required"
-            : "Invalid status value",
+        error: "Please enter a valid status.",
       })
       .transform((val) => val === "true"),
   }),
@@ -48,32 +31,27 @@ export const videoRequestSchema = z.object({
 
 const updateVideoSchema = z.object({
   params: z.object({
-    videoId: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Video Id is required." : "Invalid input.",
-      })
-      .regex(/^[a-fA-F0-9]{24}$/, {
-        error: "Invalid MongoDB ObjectId",
-      }),
+    videoId: z.string().regex(/^[a-fA-F0-9]{24}$/, {
+      error: "Invalid Video Id format.",
+    }),
   }),
   body: z
     .object({
       title: z
         .string()
         .trim()
-        .min(2, "Title must be at least 2 characters")
-        .max(100, "Title cannot exceed 100 characters")
+        .min(2, { error: "Title must be at least 2 characters." })
+        .max(100, { error: "Title cannot exceed 100 characters." })
         .optional(),
 
       description: z
         .string()
         .trim()
-        .max(400, "Description cannot exceed 400 characters")
+        .max(400, { error: "Description cannot exceed 400 characters." })
         .optional(),
     })
     .refine((data) => data.title || data.description, {
-      message: "You must provide at least a title or a description to update",
+      message: "You must provide at least a title or a description to update.",
     }),
 });
 

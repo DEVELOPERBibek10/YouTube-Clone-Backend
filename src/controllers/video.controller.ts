@@ -223,7 +223,7 @@ const updateThumbnail = asyncHandler(
       },
       {
         $set: {
-          "thumbnail.url": thumbnail.url,
+          "thumbnail.url": thumbnail.secure_url,
           "thumbnail.publicId": thumbnail.public_id,
         },
       },

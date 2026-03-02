@@ -3,36 +3,25 @@ import { z } from "zod";
 export const registerSchema = z.object({
   body: z.object({
     fullName: z
-      .string({
-        error: (iss) =>
-          !iss.input ? "Full name is required" : "Invalid input",
-      })
+      .string()
       .trim()
-      .min(3, "Full name must be at least 3 characters"),
+      .min(3, "Full name must be at least 3 characters")
+      .max(50, { error: "Full name cannot be more than 50 characters." }),
 
     email: z
-      .email({
-        error: (iss) =>
-          iss.input === undefined
-            ? "Email is required"
-            : "Invalid email format",
-      })
+      .email()
       .toLowerCase()
-      .trim(),
+      .trim()
+      .min(1, { error: "Email is required." }),
 
     username: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Username is required" : "Invalid input",
-      })
+      .string()
       .trim()
-      .min(3, "Username must be at least 3 characters"),
+      .min(3, "Username must be at least 3 characters")
+      .max(20, { error: "Username cannot be more than 20 characters." }),
 
     password: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Password is required" : "Invalid input",
-      })
+      .string()
       .min(8, "Password must be 8+ characters")
       .max(16, "Password cannot be more than 16 characters"),
   }),
@@ -41,65 +30,46 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   body: z.object({
     email: z
-      .email({
-        error: (iss) =>
-          iss.input === undefined
-            ? "Email is required"
-            : "Invalid email format",
-      })
+      .email()
       .toLowerCase()
-      .trim(),
+      .trim()
+      .min(1, { error: "Email is required." }),
     password: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Password is required" : "Invalid input",
-      })
+      .string({ error: "Please provide a valid password." })
       .min(8, "Password must be at least 8 characters")
-      .max(16, "Password must be less than 17 characters"),
+      .max(16, "Password cannot be more than 16 characters"),
   }),
 });
 
 export const updateUserDetailSchema = z.object({
   body: z.object({
     username: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Username is required" : "Invalid input",
-      })
-      .trim(),
+      .string()
+      .trim()
+      .min(3, "Username must be at least 3 characters")
+      .max(20, { error: "Username cannot be more than 20 characters." }),
   }),
 });
 
 export const userParamSchema = z.object({
   params: z.object({
     username: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined ? "Username is required" : "Invalid input",
-      })
-      .trim(),
+      .string()
+      .trim()
+      .min(3, "Username must be at least 3 characters")
+      .max(20, { error: "Username cannot be more than 20 characters." }),
   }),
 });
 
 export const changePasswordSchema = z.object({
   body: z.object({
     oldPassword: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined
-            ? "Old Password is required"
-            : "Invalid input",
-      })
+      .string()
       .min(8, "Password must be at least 8 characters")
       .max(16, "Password must be less than 17 characters"),
 
     newPassword: z
-      .string({
-        error: (iss) =>
-          iss.input === undefined
-            ? "New Password is required"
-            : "Invalid input",
-      })
+      .string()
       .min(8, "Password must be at least 8 characters")
       .max(16, "Password must be less than 17 characters"),
   }),
