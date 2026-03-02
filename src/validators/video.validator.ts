@@ -29,7 +29,7 @@ export const videoRequestSchema = z.object({
   }),
 });
 
-const updateVideoSchema = z.object({
+export const updateVideoSchema = z.object({
   params: z.object({
     videoId: z.string().regex(/^[a-fA-F0-9]{24}$/, {
       error: "Invalid Video Id format.",

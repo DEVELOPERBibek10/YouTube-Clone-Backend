@@ -10,16 +10,26 @@ import {
   uploadVideo,
 } from "../controllers/video.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { validation } from "../middlewares/validation.middleware.js";
+import {
+  updateVideoSchema,
+  videoRequestSchema,
+} from "../validators/video.validator.js";
 
 const videoRouter = Router();
 
 videoRouter.route("/signature").get(verifyJWT, getVideoSignature);
 videoRouter
   .route("/upload")
-  .post(verifyJWT, upload.single("thumbnail"), uploadVideo);
+  .post(
+    validation(videoRequestSchema),
+    verifyJWT,
+    upload.single("thumbnail"),
+    uploadVideo
+  );
 videoRouter
   .route("/update-details/:videoId")
-  .patch(verifyJWT, updateVideoDetails);
+  .patch(validation(updateVideoSchema), verifyJWT, updateVideoDetails);
 videoRouter
   .route("/update-thumbnail/:videoId")
   .patch(verifyJWT, upload.single("thumbnail"), updateThumbnail);
