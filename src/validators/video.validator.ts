@@ -59,7 +59,7 @@ export const videoQuerySchema = z.object({
   ),
   limit: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.coerce.number().min(1).max(5).default(1)
+    z.coerce.number().min(1).max(5).default(10)
   ),
   sortBy: z.preprocess(
     (val) => (val === "" ? undefined : val),
