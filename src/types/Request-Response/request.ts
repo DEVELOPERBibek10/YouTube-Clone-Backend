@@ -1,6 +1,7 @@
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request } from "express";
 import type { UserResponse } from "./response.js";
+import type { ParsedQs } from "qs";
 
 export interface TypedRequest<
   TBody = any,
@@ -16,11 +17,13 @@ interface UserRequest extends UserResponse {}
 
 export interface AuthTypedRequest<
   TBody = any,
-  TFile = any,
+  TFile = Express.Multer.File | Express.Multer.File[],
   TParams = ParamsDictionary,
-> extends Omit<Request, "body" | "files" | "params"> {
+  TQuery = ParsedQs,
+> extends Omit<Request, "body" | "files" | "params" | "query"> {
   body: TBody;
-  params: TParams;
   user: UserRequest;
-  files?: TFile | undefined;
+  params: TParams;
+  query: TQuery;
+  files?: TFile;
 }

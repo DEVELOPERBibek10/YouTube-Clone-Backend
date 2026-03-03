@@ -14,6 +14,7 @@ import getVectorEmbedding from "../utils/vectorEmbedding.js";
 import type {
   UpdateVideoParmasSchema,
   UpdateVideoSchema,
+  VideoQuerySchema,
   VideoSchema,
 } from "../validators/video.validator.js";
 
@@ -381,11 +382,13 @@ export const getVideo = asyncHandler(
 );
 
 export const getAllVideos = asyncHandler(
-  async (req: AuthTypedRequest, res: Response) => {
-    const { page = 1, limit = 15, sortBy, sortType, searchText } = req.query;
-    const pageNumber = parseInt(page as string);
-    const limitNumber = parseInt(limit as string);
-    const skip = (pageNumber - 1) * limitNumber;
+  async (
+    req: AuthTypedRequest<any, any, any, VideoQuerySchema>,
+    res: Response
+  ) => {
+    const { page, limit, sortBy, sortType, searchText } = req.query;
+
+    const skip = (page - 1) * limit;
     const pipeline: any[] = [];
 
     if (searchText) {
@@ -427,7 +430,7 @@ export const getAllVideos = asyncHandler(
       $facet: {
         videos: [
           { $skip: skip },
-          { $limit: limitNumber },
+          { $limit: limit },
           {
             $lookup: {
               from: "users",
@@ -463,7 +466,7 @@ export const getAllVideos = asyncHandler(
       .json(
         new ApiResponse(
           200,
-          { videos, totalVideos, page: pageNumber, limit: limitNumber },
+          { videos, totalVideos, page, limit },
           "Videos fetched successfully"
         )
       );

@@ -1,82 +1,64 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  body: z.object({
-    fullName: z
-      .string()
-      .trim()
-      .min(3, "Full name must be at least 3 characters")
-      .max(50, { error: "Full name cannot be more than 50 characters." }),
+  fullName: z
+    .string()
+    .trim()
+    .min(3, "Full name must be at least 3 characters")
+    .max(50, { error: "Full name cannot be more than 50 characters." }),
 
-    email: z
-      .email()
-      .toLowerCase()
-      .trim()
-      .min(1, { error: "Email is required." }),
+  email: z.email().toLowerCase().trim().min(1, { error: "Email is required." }),
 
-    username: z
-      .string()
-      .trim()
-      .min(3, "Username must be at least 3 characters")
-      .max(20, { error: "Username cannot be more than 20 characters." }),
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, { error: "Username cannot be more than 20 characters." }),
 
-    password: z
-      .string()
-      .min(8, "Password must be 8+ characters")
-      .max(16, "Password cannot be more than 16 characters"),
-  }),
+  password: z
+    .string()
+    .min(8, "Password must be 8+ characters")
+    .max(16, "Password cannot be more than 16 characters"),
 });
 
 export const loginSchema = z.object({
-  body: z.object({
-    email: z
-      .email()
-      .toLowerCase()
-      .trim()
-      .min(1, { error: "Email is required." }),
-    password: z
-      .string({ error: "Please provide a valid password." })
-      .min(8, "Password must be at least 8 characters")
-      .max(16, "Password cannot be more than 16 characters"),
-  }),
+  email: z.email().toLowerCase().trim().min(1, { error: "Email is required." }),
+  password: z
+    .string({ error: "Please provide a valid password." })
+    .min(8, "Password must be at least 8 characters")
+    .max(16, "Password cannot be more than 16 characters"),
 });
 
 export const updateUserDetailSchema = z.object({
-  body: z.object({
-    username: z
-      .string()
-      .trim()
-      .min(3, "Username must be at least 3 characters")
-      .max(20, { error: "Username cannot be more than 20 characters." }),
-  }),
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, { error: "Username cannot be more than 20 characters." }),
 });
 
 export const userParamSchema = z.object({
-  params: z.object({
-    username: z
-      .string()
-      .trim()
-      .min(3, "Username must be at least 3 characters")
-      .max(20, { error: "Username cannot be more than 20 characters." }),
-  }),
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, { error: "Username cannot be more than 20 characters." }),
 });
 
 export const changePasswordSchema = z.object({
-  body: z.object({
-    oldPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(16, "Password must be less than 17 characters"),
+  oldPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(16, "Password must be less than 17 characters"),
 
-    newPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(16, "Password must be less than 17 characters"),
-  }),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(16, "Password must be less than 17 characters"),
 });
 
-export type RegisterUserSchema = z.infer<typeof registerSchema>["body"];
-export type LoginUserSchema = z.infer<typeof loginSchema>["body"];
-export type UpdateUserSchema = z.infer<typeof updateUserDetailSchema>["body"];
-export type UserParamSchema = z.infer<typeof userParamSchema>["params"];
-export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>["body"];
+export type RegisterUserSchema = z.infer<typeof registerSchema>;
+export type LoginUserSchema = z.infer<typeof loginSchema>;
+export type UpdateUserSchema = z.infer<typeof updateUserDetailSchema>;
+export type UserParamSchema = z.infer<typeof userParamSchema>;
+export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
