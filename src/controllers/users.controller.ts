@@ -503,7 +503,7 @@ const updateCoverImage = asyncHandler(
 );
 
 const getUserChannelProfile = asyncHandler(
-  async (req: AuthTypedRequest<null, null, UserParamSchema>, res: Response) => {
+  async (req: AuthTypedRequest<any, any, UserParamSchema>, res: Response) => {
     const { username } = req.params;
 
     const channel = await User.aggregate([
