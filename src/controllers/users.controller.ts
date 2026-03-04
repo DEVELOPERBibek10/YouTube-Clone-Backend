@@ -5,6 +5,7 @@ import { deleteFile, uploadFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
+import type { Request } from "express";
 
 import type {
   UserResponse,
@@ -220,32 +221,33 @@ const loginUser = asyncHandler(
   }
 );
 
-const logoutUser = asyncHandler(
-  async (req: AuthTypedRequest, res: Response) => {
-    await User.findOneAndUpdate(
-      { _id: req.user!._id },
-      {
-        $unset: {
-          refreshToken: 1,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+  const options: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+  };
+  const incomingRefreshToken = req.cookies?.refreshToken;
 
-    const options: CookieOptions = {
-      httpOnly: true,
-      secure: true,
-    };
-
+  if (!incomingRefreshToken) {
     return res
       .status(200)
       .clearCookie("accessToken", options)
       .clearCookie("refreshToken", options)
       .json(new ApiResponse<null>(200, null, "User logged out"));
   }
-);
+
+  await User.findOneAndUpdate(
+    { refreshToken: incomingRefreshToken },
+    { $unset: { refreshToken: 1 } },
+    { new: true }
+  );
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse<null>(200, null, "User logged out"));
+});
 
 const refreshAccessToken = asyncHandler(
   async (req: TypedRequest, res: Response) => {

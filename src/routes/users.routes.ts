@@ -42,7 +42,7 @@ userRouter.route("/register").post(
 userRouter.route("/login").post(validation(loginSchema), loginUser);
 
 // secure route
-userRouter.route("/logout").post(verifyJWT, logoutUser);
+userRouter.route("/logout").post(logoutUser);
 userRouter.route("/refresh-token").post(refreshAccessToken);
 userRouter.route("/current-user").get(verifyJWT, getCurrentUser);
 userRouter
