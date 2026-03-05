@@ -18,7 +18,7 @@ const globalErrorHandler = (
   if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;
-    code = err.code || code;
+    code = err.code;
     errors = err.errors;
   } else if (err instanceof MongooseError.ValidationError) {
     statusCode = 400;

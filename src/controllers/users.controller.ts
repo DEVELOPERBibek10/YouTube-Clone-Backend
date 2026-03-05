@@ -25,6 +25,10 @@ import type {
   ChangePasswordSchema,
   UpdateUserSchema,
 } from "../validators/user.validator.js";
+import {
+  accessTokenOptions,
+  refreshTokenOptions,
+} from "../constants/cookieOption.js";
 
 const generateAccessAndRefreshToken = async (
   userId: string | Types.ObjectId
@@ -198,16 +202,10 @@ const loginUser = asyncHandler(
       "-password -watchHistory"
     );
 
-    const options: CookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    };
-
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, accessTokenOptions)
+      .cookie("refreshToken", refreshToken, refreshTokenOptions)
       .json(
         new ApiResponse<LoggedInUserResponse>(
           200,
@@ -222,17 +220,13 @@ const loginUser = asyncHandler(
 );
 
 const logoutUser = asyncHandler(async (req: Request, res: Response) => {
-  const options: CookieOptions = {
-    httpOnly: true,
-    secure: true,
-  };
   const incomingRefreshToken = req.cookies?.refreshToken;
 
   if (!incomingRefreshToken) {
     return res
       .status(200)
-      .clearCookie("accessToken", options)
-      .clearCookie("refreshToken", options)
+      .clearCookie("accessToken", accessTokenOptions)
+      .clearCookie("refreshToken", refreshTokenOptions)
       .json(new ApiResponse<null>(200, null, "User logged out"));
   }
 
@@ -244,8 +238,8 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", accessTokenOptions)
+    .clearCookie("refreshToken", refreshTokenOptions)
     .json(new ApiResponse<null>(200, null, "User logged out"));
 });
 
@@ -260,41 +254,17 @@ const refreshAccessToken = asyncHandler(
         "No refresh token provided"
       );
     }
-
+    let decodedToken: DecodedToken;
     try {
-      const decodedToken = jwt.verify(
+      decodedToken = jwt.verify(
         incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET!
       ) as DecodedToken;
-
-      const user = await User.findById(decodedToken._id);
-
-      if (!user) {
-        throw new ApiError(404, "NOT_FOUND", "User not found");
-      }
-      if (incomingRefreshToken !== user.refreshToken) {
-        throw new ApiError(
-          401,
-          "REFRESH_TOKEN_INVALID",
-          "Token is expired or used"
-        );
-      }
-      const { accessToken, refreshToken: newRefreshToken } =
-        await generateAccessAndRefreshToken(user._id);
-
-      const options: CookieOptions = {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-      };
-
-      return res
-        .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
-        .json(new ApiResponse<null>(200, null, "Access token refreshed"));
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
+        res
+          .clearCookie("accessToken", accessTokenOptions)
+          .clearCookie("refreshToken", refreshTokenOptions);
         throw new ApiError(
           401,
           "REFRESH_TOKEN_EXPIRED",
@@ -302,10 +272,34 @@ const refreshAccessToken = asyncHandler(
         );
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new ApiError(401, "INVALID_TOKEN", "Invalid refresh token");
+        console.log("Cookie cleared: Malformed refresh token");
+        res
+          .clearCookie("accessToken", accessTokenOptions)
+          .clearCookie("refreshToken", refreshTokenOptions);
+        throw new ApiError(401, "INVALID_TOKEN", "Refresh token is malformed.");
       }
       throw error;
     }
+
+    const user = await User.findById(decodedToken._id).select("+refreshToken");
+
+    if (!user || incomingRefreshToken !== user.refreshToken) {
+      res
+        .clearCookie("accessToken", accessTokenOptions)
+        .clearCookie("refreshToken", refreshTokenOptions);
+      throw new ApiError(
+        401,
+        "INVALID_TOKEN",
+        "Logged out due to invalid credentials!"
+      );
+    }
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessAndRefreshToken(user._id);
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, accessTokenOptions)
+      .cookie("refreshToken", newRefreshToken, refreshTokenOptions)
+      .json(new ApiResponse<null>(200, null, "Access token refreshed"));
   }
 );
 
@@ -358,17 +352,11 @@ const changeCurrentPassword = asyncHandler(
     user.password = newPassword;
     await user.save({ validateBeforeSave: false });
 
-    const options: CookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    };
-
     return res
       .status(200)
-      .cookie("refreshToken", "", options)
-      .cookie("accessToken", "", options)
-      .json(new ApiResponse<{}>(200, {}, "Password changed successfully!"));
+      .clearCookie("refreshToken", accessTokenOptions)
+      .clearCookie("accessToken", refreshTokenOptions)
+      .json(new ApiResponse<{}>(200, {}, "Login again with the new password."));
   }
 );
 
