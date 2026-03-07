@@ -11,7 +11,8 @@ export const videoRequestSchema = z.object({
     description: z
       .string()
       .trim()
-      .max(400, { error: "Description cannot exceed 400 characters" }),
+      .max(300, { error: "Description must be less than 300 characters" })
+      .optional(),
 
     videoUrl: z.string().trim().min(1, { error: "Video url is required." }),
 
@@ -19,6 +20,7 @@ export const videoRequestSchema = z.object({
 
     duration: z.coerce
       .number()
+      .min(1, { error: "Video duration is required." })
       .positive({ error: "Duration must be a positive number." }),
 
     isPublished: z
