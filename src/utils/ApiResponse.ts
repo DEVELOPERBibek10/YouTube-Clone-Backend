@@ -3,12 +3,18 @@ class ApiResponse<T> {
   data: T;
   message: string;
   success: boolean;
-
-  constructor(statusCode: number, data: T, message = "Success") {
+  code: string;
+  constructor(
+    statusCode: number,
+    data: T,
+    message = "Success",
+    code = "SUCCESS"
+  ) {
     ((this.statusCode = statusCode),
+      (this.code = code),
       (this.data = data),
       (this.message = message),
-      (this.success = statusCode < 400));
+      (this.success = true));
   }
 }
 
