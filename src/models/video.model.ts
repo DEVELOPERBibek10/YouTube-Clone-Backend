@@ -32,7 +32,6 @@ const videoSchema = new Schema<IVideo>(
     },
     description: {
       type: String,
-      required: true,
     },
     duration: {
       type: Number,
