@@ -12,7 +12,7 @@ import { Comment } from "../models/comment.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import getVectorEmbedding from "../utils/vectorEmbedding.js";
 import type {
-  UpdateVideoParmasSchema,
+  UpdateVideoParamsSchema,
   UpdateVideoSchema,
   VideoQuerySchema,
   VideoSchema,
@@ -99,7 +99,9 @@ const uploadVideo = asyncHandler(
         duration,
       });
 
-      const createdVideo = await Video.exists({ _id: video._id });
+      const createdVideo = await Video.exists({ _id: video._id }).select(
+        "-owner"
+      );
 
       if (!createdVideo) {
         throw new ApiError(
@@ -110,7 +112,9 @@ const uploadVideo = asyncHandler(
       }
       return res
         .status(201)
-        .json(new ApiResponse(201, video, "Video uploaded Sucessfully."));
+        .json(
+          new ApiResponse(201, createdVideo, "Video uploaded Sucessfully.")
+        );
     } catch (error: any) {
       const thumbnailDeletion = await deleteFile(thumbnail.public_id);
       if (thumbnailDeletion instanceof ApiError) {
@@ -141,7 +145,7 @@ const uploadVideo = asyncHandler(
 
 const updateVideoDetails = asyncHandler(
   async (
-    req: AuthTypedRequest<UpdateVideoSchema, null, UpdateVideoParmasSchema>,
+    req: AuthTypedRequest<UpdateVideoSchema, null, UpdateVideoParamsSchema>,
     res: Response
   ) => {
     const { title, description } = req.body;
@@ -175,7 +179,7 @@ const updateVideoDetails = asyncHandler(
 
 const updateThumbnail = asyncHandler(
   async (
-    req: AuthTypedRequest<null, any, UpdateVideoParmasSchema>,
+    req: AuthTypedRequest<null, any, UpdateVideoParamsSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
@@ -245,7 +249,7 @@ const updateThumbnail = asyncHandler(
 
 const deleteVideo = asyncHandler(
   async (
-    req: AuthTypedRequest<null, null, UpdateVideoParmasSchema>,
+    req: AuthTypedRequest<null, null, UpdateVideoParamsSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
@@ -292,7 +296,7 @@ const deleteVideo = asyncHandler(
 
 export const getVideo = asyncHandler(
   async (
-    req: AuthTypedRequest<null, null, UpdateVideoParmasSchema>,
+    req: AuthTypedRequest<null, null, UpdateVideoParamsSchema>,
     res: Response
   ) => {
     const { videoId } = req.params;
