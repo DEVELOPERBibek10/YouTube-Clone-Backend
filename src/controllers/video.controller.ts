@@ -24,7 +24,7 @@ const getVideoSignature = asyncHandler(
     const timestamp = Math.round(new Date().getTime() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, folder },
+      { folder, timestamp },
       process.env.CLOUDINARY_API_SECRET!
     );
 
@@ -148,14 +148,16 @@ const updateVideoDetails = asyncHandler(
     req: AuthTypedRequest<UpdateVideoSchema, null, UpdateVideoParamsSchema>,
     res: Response
   ) => {
-    const { title, description } = req.body;
+    const { title, description, isPublished } = req.body;
     const { videoId } = req.params;
     const updateData: any = {};
 
-    if (title !== undefined) {
+    if (title) {
       updateData.title = title;
     }
-    if (description !== undefined) updateData.description = description;
+    if (description) updateData.description = description;
+
+    if (isPublished) updateData.isPublished = isPublished;
 
     const updatedVideoDetail = await Video.findOneAndUpdate(
       { _id: videoId, owner: req.user._id },

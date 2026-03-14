@@ -46,9 +46,12 @@ export const updateVideoSchema = z.object({
         .trim()
         .max(400, { error: "Description cannot exceed 400 characters." })
         .optional(),
+
+      isPublished: z.coerce.boolean().optional(),
     })
-    .refine((data) => data.title || data.description, {
-      error: "You must provide at least a title or a description to update.",
+    .refine((data) => data.title || data.description || data.isPublished, {
+      error:
+        "You must provide at least a title or a description or visibility status to update.",
     }),
 });
 
@@ -101,4 +104,5 @@ export type UpdateVideoSchema = z.infer<typeof updateVideoSchema>["body"];
 export type UpdateVideoParamsSchema = z.infer<
   typeof updateVideoParamsSchema
 >["params"];
+``;
 export type VideoQuerySchema = z.infer<typeof videoQuerySchema>["query"];
