@@ -17,6 +17,7 @@ import type {
   VideoQuerySchema,
   VideoSchema,
 } from "../validators/video.validator.js";
+import { Types } from "mongoose";
 
 const getVideoSignature = asyncHandler(
   async (req: AuthTypedRequest, res: Response) => {
@@ -353,7 +354,7 @@ export const getVideo = asyncHandler(
       video: videoId,
     });
     const isSubscribedPromise = Subscription.exists({
-      channel: Array.isArray(video),
+      channel: video.owner._id,
       subscriber: req.user?._id,
     });
 
@@ -392,9 +393,10 @@ export const getAllVideos = asyncHandler(
     req: AuthTypedRequest<any, any, any, VideoQuerySchema>,
     res: Response
   ) => {
-    const { page, limit, sortBy, sortType, searchText } = req.query;
-
-    const skip = (page - 1) * limit;
+    const { page, cursor, searchText } = req.query;
+    const limit = 10;
+    const vectorLimit = page * limit;
+    const skipCount = (page - 1) * limit;
     const pipeline: any[] = [];
 
     if (searchText) {
@@ -409,73 +411,82 @@ export const getAllVideos = asyncHandler(
       }
 
       pipeline.push(
-        { $match: { isPublished: true } },
         {
           $vectorSearch: {
             index: "video_title_index",
             path: "title_embedding",
             queryVector: queryVector,
-            numCandidates: 100,
-            limit: 10,
+            numCandidates: vectorLimit * 10,
+            limit: vectorLimit,
+            filter: { isPublished: true },
           },
-        }
+        },
+        { $skip: skipCount }
       );
     } else {
-      pipeline.push(
-        { $match: { isPublished: true } },
-        { $sort: { createdAt: -1 } }
-      );
-    }
-
-    const sortDirection = sortType == "asc" ? 1 : -1;
-    if (sortBy) {
-      pipeline.push({ $sort: { [sortBy as string]: sortDirection } });
-    }
-
-    pipeline.push({
-      $facet: {
-        videos: [
-          { $skip: skip },
-          { $limit: limit },
+      if (!cursor) {
+        pipeline.push(
+          { $match: { isPublished: true } },
+          { $sort: { createdAt: -1 } }
+        );
+      } else {
+        pipeline.push(
           {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    _id: 0,
-                    username: 1,
-                    avatar: 1,
-                  },
-                },
-              ],
+            $match: {
+              isPublished: true,
+              _id: { $lt: new Types.ObjectId(cursor) },
             },
           },
-        ],
-        totalCount: [{ $count: "count" }],
+          { $sort: { createdAt: -1 } }
+        );
+      }
+    }
+
+    pipeline.push(
+      { $limit: limit + 1 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $project: {
+                _id: 0,
+                username: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
       },
-    });
+      { $unwind: "$owner" }
+    );
 
     const result = await Video.aggregate(pipeline);
 
     if (!result)
       throw new ApiError(404, "NOT_FOUND", "No videos found or unauthorized");
+    const areVideosLeft = result.length > limit;
+    const videos = result.slice(0, limit);
+    let response: {
+      videos: any[];
+      nextCursor?: string | null;
+      hasNextPage?: boolean;
+    } = { videos: [...videos] };
 
-    const videos = result[0].videos;
-    const totalVideos = result[0].totalCount[0]?.count || 0;
+    if (!searchText) {
+      response.nextCursor = areVideosLeft
+        ? videos[videos.length - 1]._id
+        : null;
+    } else {
+      response.hasNextPage = areVideosLeft;
+    }
 
     return res
       .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { videos, totalVideos, page, limit },
-          "Videos fetched successfully"
-        )
-      );
+      .json(new ApiResponse(200, response, "Videos fetched successfully"));
   }
 );
 
