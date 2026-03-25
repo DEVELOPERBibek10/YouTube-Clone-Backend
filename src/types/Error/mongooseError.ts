@@ -6,11 +6,7 @@ export interface ApiError extends Error {
   success?: boolean;
 }
 
-export interface MongoDuplicateKeyError extends Error {
+export interface MongoDuplicateKeyError extends MongooseError {
   code: number;
   keyValue: Record<string, any>;
-}
-
-export interface MongooseCastError extends MongooseError.CastError {
-  path: string;
 }
