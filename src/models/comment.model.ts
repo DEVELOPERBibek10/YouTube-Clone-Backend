@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import uniqueValidator from "mongoose-unique-validator";
 
 const commentSchema = new Schema(
   {
@@ -19,6 +19,6 @@ const commentSchema = new Schema(
   { timestamps: true }
 );
 
-commentSchema.plugin(mongooseAggregatePaginate);
+commentSchema.plugin(uniqueValidator);
 
 export const Comment = mongoose.model("Comment", commentSchema);

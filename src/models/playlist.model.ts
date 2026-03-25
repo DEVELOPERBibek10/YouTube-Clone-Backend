@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import uniqueValidator from "mongoose-unique-validator";
 
 const playlistSchema = new Schema(
   {
@@ -22,5 +23,7 @@ const playlistSchema = new Schema(
   },
   { timestamps: true }
 );
+
+playlistSchema.plugin(uniqueValidator);
 
 export const Playlist = mongoose.model("Playlist", playlistSchema);
