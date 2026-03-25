@@ -3,6 +3,7 @@ import type { GlobalError } from "../types/Error/GobalError.js";
 import { Error as MongooseError } from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import { MulterError } from "multer";
+import type { MongoDuplicateKeyError } from "../types/Error/mongooseError.js";
 
 const globalErrorHandler = (
   err: GlobalError,
@@ -21,14 +22,24 @@ const globalErrorHandler = (
     code = err.code;
     errors = err.errors;
   } else if (err instanceof MongooseError.ValidationError) {
+    const errorValues = Object.values(err.errors);
+    const hasUniqueViolation = errorValues.some((el) => el.kind === "unique");
+    const uniqueErrors = errorValues.filter((e) => e.kind === "unique");
+    const uniqueFields = uniqueErrors.map((e) => e.path);
     statusCode = 400;
-    message = "Validation Failed";
-    code = "VALIDATION_ERROR";
-    errors = Object.values(err.errors).map((el) => el.message);
-  } else if ("code" in err && err.code === 11000 && "keyValue" in err) {
+    code = hasUniqueViolation ? "DUPLICATE_KEY_ERROR" : "VALIDATION_ERROR";
+    message = hasUniqueViolation
+      ? `Duplicate value for field(s): ${uniqueFields.join(", ")}`
+      : "Validation Failed";
+    errors = hasUniqueViolation
+      ? uniqueErrors.map((e) => e.message)
+      : errorValues.map((el) => el.message);
+  } else if ("code" in err && (err as MongoDuplicateKeyError).code === 11000) {
+    const duplicatedField = Object.keys(
+      (err as MongoDuplicateKeyError).keyValue
+    ).join(", ");
     statusCode = 409;
     code = "DUPLICATE_KEY_ERROR";
-    const duplicatedField = Object.keys((err as any).keyValue!).join(", ");
     message = `Duplicate value for field(s): ${duplicatedField}`;
   } else if (err instanceof MulterError) {
     statusCode = 400;
