@@ -69,26 +69,12 @@ export const videoQuerySchema = z.object({
       (val) => (val === "" ? undefined : val),
       z.coerce.number().min(1).default(1)
     ),
-    limit: z.preprocess(
-      (val) => (val === "" ? undefined : val),
-      z.coerce.number().min(1).max(50).default(10)
-    ),
-    sortBy: z.preprocess(
-      (val) => (val === "" ? undefined : val),
-      z
-        .enum(["createdAt", "views"], {
-          error: "Please provide a valid sorting parameter.",
-        })
-        .default("createdAt")
-    ),
-    sortType: z.preprocess(
-      (val) => (val === "" ? undefined : val),
-      z
-        .enum(["asc", "dsc"], {
-          error: "Please provide a valid sorting order.",
-        })
-        .default("asc")
-    ),
+    cursor: z
+      .string()
+      .regex(/^[a-fA-F0-9]{24}$/, {
+        error: "Invalid Video Id format.",
+      })
+      .optional(),
     searchText: z
       .string()
       .trim()
