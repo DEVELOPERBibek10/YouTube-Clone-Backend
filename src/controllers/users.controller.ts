@@ -9,14 +9,13 @@ import type { Request } from "express";
 
 import type {
   UserResponse,
-  LoggedInUserResponse,
   ChannelProfileResponse,
 } from "../types/Request-Response/response.js";
 import type {
   AuthTypedRequest,
   TypedRequest,
 } from "../types/Request-Response/request.js";
-import type { Response, CookieOptions } from "express";
+import type { Response } from "express";
 import type { DecodedToken } from "../middlewares/auth.middleware.js";
 import type {
   RegisterUserSchema,
@@ -206,16 +205,7 @@ const loginUser = asyncHandler(
       .status(200)
       .cookie("accessToken", accessToken, accessTokenOptions)
       .cookie("refreshToken", refreshToken, refreshTokenOptions)
-      .json(
-        new ApiResponse<LoggedInUserResponse>(
-          200,
-          {
-            user: loggedInUser as UserResponse,
-            accessToken,
-          },
-          "User loggedIn successfully"
-        )
-      );
+      .json(new ApiResponse(200, loggedInUser, "User loggedIn successfully"));
   }
 );
 

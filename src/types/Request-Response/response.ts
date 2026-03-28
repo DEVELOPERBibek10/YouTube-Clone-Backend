@@ -15,11 +15,6 @@ export interface UserResponse {
   updatedAt: Date;
 }
 
-export interface LoggedInUserResponse {
-  user: UserResponse;
-  accessToken: string;
-}
-
 export interface ChannelProfileResponse extends UserResponse {
   subscribersCount: number;
   channelsSubscribedToCount: number;
