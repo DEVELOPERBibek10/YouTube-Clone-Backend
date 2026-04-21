@@ -29,7 +29,7 @@ videoRouter
     uploadVideo
   );
 videoRouter
-  .route("/update-details/:videoId")
+  .route("/details/:videoId")
   .patch(
     verifyJWT,
     validation(updateVideoParamsSchema),
@@ -37,7 +37,7 @@ videoRouter
     updateVideoDetails
   );
 videoRouter
-  .route("/update-thumbnail/:videoId")
+  .route("/thumbnail/:videoId")
   .patch(
     verifyJWT,
     validation(updateVideoParamsSchema),
@@ -45,7 +45,7 @@ videoRouter
     updateThumbnail
   );
 videoRouter
-  .route("/delete/:videoId")
+  .route("/:videoId")
   .delete(verifyJWT, validation(updateVideoParamsSchema), deleteVideo);
 videoRouter.route("").get(verifyJWT, getAllVideos);
 videoRouter.route("/search").get(verifyJWT, getSuggestions);
