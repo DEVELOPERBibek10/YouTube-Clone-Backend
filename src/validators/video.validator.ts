@@ -65,10 +65,12 @@ export const updateVideoParamsSchema = z.object({
 
 export const videoQuerySchema = z.object({
   query: z.object({
-    page: z.preprocess(
-      (val) => (val === "" ? undefined : val),
-      z.coerce.number().min(1).default(1)
-    ),
+    page: z
+      .preprocess(
+        (val) => (val === "" ? undefined : val),
+        z.coerce.number().min(1).default(1)
+      )
+      .optional(),
     cursor: z
       .string()
       .regex(/^[a-fA-F0-9]{24}$/, {
