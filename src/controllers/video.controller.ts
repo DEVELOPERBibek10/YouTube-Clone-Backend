@@ -388,15 +388,15 @@ export const getVideo = asyncHandler(
   }
 );
 
-export const getAllVideos = asyncHandler(
+const getAllVideos = asyncHandler(
   async (
     req: AuthTypedRequest<any, any, any, VideoQuerySchema>,
     res: Response
   ) => {
     const { page, cursor, searchText } = req.query;
-    const limit = 10;
-    const vectorLimit = page * limit;
-    const skipCount = (page - 1) * limit;
+    const limit = 15;
+    const vectorLimit = page ? page * limit : limit;
+    const skipCount = page ? (page - 1) * limit : 0;
     const pipeline: any[] = [];
 
     if (searchText) {
@@ -539,6 +539,7 @@ export {
   uploadVideo,
   updateVideoDetails,
   updateThumbnail,
+  getAllVideos,
   deleteVideo,
   getSuggestions,
 };
