@@ -46,13 +46,13 @@ userRouter.route("/logout").post(logoutUser);
 userRouter.route("/refresh-token").post(refreshAccessToken);
 userRouter.route("/current-user").get(verifyJWT, getCurrentUser);
 userRouter
-  .route("/update-details")
+  .route("/details")
   .patch(verifyJWT, validation(updateUserDetailSchema), updateDetails);
 userRouter
-  .route("/update-avatar")
+  .route("/avatar")
   .patch(verifyJWT, upload.single("avatar"), updateAvatar);
 userRouter
-  .route("/update-cover-image")
+  .route("/cover-image")
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
 userRouter
   .route("/profile/:username")
