@@ -12,7 +12,6 @@ const videoSchema = new Schema<IVideo>(
       publicId: {
         type: String,
         required: true,
-        select: false,
       },
     },
     thumbnail: {
@@ -23,7 +22,6 @@ const videoSchema = new Schema<IVideo>(
       publicId: {
         type: String,
         required: true,
-        select: false,
       },
     },
     title: {
